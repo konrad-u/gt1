@@ -44,11 +44,17 @@ public class W1 extends AI {
 	}
 	
 	public DivingAction persueClosestPearl(Point goal) {
-		Point playerPos = new Point();
-		playerPos.x = (int)info.getX();
-		playerPos.y = (int)info.getY();
+		Point playerPos = new Point((int)info.getX(), (int)info.getY());
+		
+		Point[] pearlPoints = info.getScene().getPearl();
+		
+		Point firstPearl = pearlPoints[0];
+		
+		float directionToPearl = (float)Math.atan2(0,0);
+		
 		return null;
 	}
+	
 	
 	public void printSceneInfo() {
 		System.out.print("thing");
