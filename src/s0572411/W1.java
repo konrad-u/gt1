@@ -196,4 +196,5 @@ public class W1 extends AI {
 		return normPoint;
 	}
 
+	
 }
