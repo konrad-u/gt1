@@ -16,7 +16,6 @@ public class W1 extends AI {
 	Path2D[] obstacles = info.getScene().getObstacles();
 	float maxVel = info.getMaxVelocity();
 	Point playerPos;
-	int pearlCount;
 	int obsDistance = 5;
 	int changeDivision = 10;
 	
@@ -45,14 +44,16 @@ public class W1 extends AI {
 	@Override
 	public PlayerAction update() {
 		playerPos = new Point((int)info.getX(), (int)info.getY());
+		
 		checkIfPlayerReachedPearl(); 
+		
 		//return new DivingAction(1.0f,3.14f);
-		return pursueClosestPearl();
+		return seekClosestPearl();
 	}
 	
 	//own methods 
 	
-	public DivingAction pursueClosestPearl() {
+	public DivingAction seekClosestPearl() {
 		
 		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
 		
@@ -67,19 +68,11 @@ public class W1 extends AI {
 		Point obstacleAvoidance = getFleeFromObstacle();
 		
 		if(obstacleAvoidance != null) {
+			//need new compensation function here
 			
-			int newX = directionPoint.x + obstacleAvoidance.x;
-			int newY = directionPoint.y + obstacleAvoidance.y;
-		
-			Point compromisePoint = new Point(newX, newY);
-		
-			float[] compNormPoints = normalizePointToFloatArray(compromisePoint);
-		
-			float compDirToPearl = -(float)Math.atan2(compNormPoints[0],compNormPoints[1]);
-		
-			DivingAction compPursuit = new DivingAction(maxVel, compDirToPearl);
+			//if object in way
 			
-			return compPursuit;
+			return null;
 			
 		}
 		
@@ -129,12 +122,8 @@ public class W1 extends AI {
 	}
 	
 	public float calculateDistance(Point start, Point goal) {
-		float distance = 0;
-		
 		Point distancePoint = pointFromStartToGoal(start, goal);
-		
-		distance = (float)Math.sqrt(distancePoint.x*distancePoint.x + distancePoint.y*distancePoint.y);
-		
+		float distance = (float)Math.sqrt(distancePoint.x*distancePoint.x + distancePoint.y*distancePoint.y);
 		return distance;
 	}
 	
@@ -153,20 +142,21 @@ public class W1 extends AI {
 	}
 	
 	public Point getFleeFromObstacle() {
-		Point[] playerSurr = getPointSurrounding(obsDistance, playerPos);
-		for(int i = 0; i < obstacles.length; i++) {
-			for(int j = 0; j < playerSurr.length; j++) {
-				if(obstacles[i].contains(playerSurr[j])) {
-					Point directionPointFromObstacle = pointFromStartToGoal(playerPos, playerSurr[j]);
-					return directionPointFromObstacle;
-				}
-			}
-		}
+		//this method should only target the point ahead of the diver; how do I get that?
+		
+		// new 45° approach; to each side of straight ahead, get the points +- 45°; if the center i.e. current
+		// direction hits a target, check if either one doesn't. choose the way that is closer to the goal and is also 
+		// not hitting anything else. 
+		
+	DivingAction currentDA = new DivingAction(info.getVelocity(), info.getOrientation());
+	
+	
+		
 		return null;
 	}
 	
-	public Point[] getPointSurrounding(int distanceFromPlayer, Point pointOfSurrounding) {
-		int i = distanceFromPlayer;
+	public Point[] getPointSurrounding(int distanceFromPoint, Point pointOfSurrounding) {
+		int i = distanceFromPoint;
 		Point[] playerSurrounding = new Point[8];
 		playerSurrounding[0] = new Point (pointOfSurrounding.x+i, pointOfSurrounding.y);
 		playerSurrounding[1] = new Point (pointOfSurrounding.x-i, pointOfSurrounding.y);
