@@ -27,7 +27,7 @@ public class W1 extends AI {
 
 	@Override
 	public String getName() {
-		return "Tomitaro Fujii";
+		return "W1";
 		
 	}
 
@@ -50,6 +50,8 @@ public class W1 extends AI {
 		//return new DivingAction(1.0f,3.14f);
 		return seekClosestPearl();
 	}
+	
+	//
 	
 	//own methods 
 	
