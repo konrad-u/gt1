@@ -42,10 +42,5 @@ public class Pathfinder extends AI {
 		
 		return new DivingAction(1.0f,3.14f);
 	}
-	
-	public MapCell[][] getMapGrid(int cellSize){
-		int 
-		MapCell[][] mapGrid = new MapCell[][];
-	}
 
 }
