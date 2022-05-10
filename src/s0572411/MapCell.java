@@ -18,9 +18,11 @@ public class MapCell {
 	//enum status describes either if cell is free (i.e. swimmable),
 	//an obstacle (so not to be considered for path) 
 	//or a pearl (diver is then to find the closest pearl and go there)
-	public enum status{
+	public enum Status{
 		free,obstacle,pearl
 	}
+	
+	public Status status;
 	
 	public MapCell() {
 		
