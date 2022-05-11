@@ -26,7 +26,7 @@ public class Pathfinder extends AI {
 	Point playerPos;
 	float maxVel = info.getMaxVelocity();
 	
-	int res = 100;
+	int res = 2;
 	Map map = new Map(res, info);
 	
 	//Graphics g;
@@ -68,6 +68,17 @@ public class Pathfinder extends AI {
 		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
 		
 		return pearlPursuit;
+	}
+	
+	@Override
+	public void drawDebugStuff(Graphics2D gfx) {
+		gfx.setColor(new Color(255,255,255));
+		for (int i = 0; i < res; i++){
+			for (int j = 0; j < res; j++) {
+				gfx.fillOval(map.mapGrid[i][j].center.x, map.mapGrid[i][j].center.y, 10,10);
+				//drawDebugStuff(g2d);
+			}
+		}
 	}
 	
 	public void drawPointCenters(int res, Graphics g, Map map) {
