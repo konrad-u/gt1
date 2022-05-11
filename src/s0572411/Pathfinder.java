@@ -14,22 +14,14 @@ import s0572411.MapCell.Status;
 
 public class Pathfinder extends AI {
 	
-	/*
-	 * 11.05 problem is can not draw in map, and can not see if player is actually steering to closest cell holding a pearl
-	 * I suspect that the status setting for each cell has some error...
-	 * 
-	 */
-	
 	Point[] pearlPoints = info.getScene().getPearl();
 	Point[] visitedPearls = new Point[pearlPoints.length];
 	Path2D[] obstacles = info.getScene().getObstacles();
 	Point playerPos;
 	float maxVel = info.getMaxVelocity();
 	
-	int res = 2;
+	int res = 50;
 	Map map = new Map(res, info);
-	
-	//Graphics g;
 
 	public Pathfinder(Info info) {
 		super(info); 
@@ -43,61 +35,49 @@ public class Pathfinder extends AI {
 
 	@Override
 	public Color getPrimaryColor() {
-		return Color.red;
+		return Color.orange;
 	}
 
 	@Override
 	public Color getSecondaryColor() {
-		return Color.green;
+		return Color.black;
 	}
 	
 	@Override
 	public PlayerAction update() {
 		playerPos = new Point((int)info.getX(), (int)info.getY());
 		
-		//drawPointCenters(res, g, map);
+		MapCell playerCell = map.PointToMapCell(res, playerPos);
 
-		Point closestPearl = returnClosestPearl();
+		checkIfPlayerReachedPearl();
 		
-		Point directionPoint = pointFromStartToGoal(playerPos, closestPearl);
-		
-		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
-		
-		float directionToPearl = -(float)Math.atan2(seekNormPoints[1],seekNormPoints[0]);
-		
-		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
-		
-		return pearlPursuit;
-	}
-	
-	@Override
-	public void drawDebugStuff(Graphics2D gfx) {
-		gfx.setColor(new Color(255,255,255));
-		for (int i = 0; i < res; i++){
-			for (int j = 0; j < res; j++) {
-				gfx.fillOval(map.mapGrid[i][j].center.x, map.mapGrid[i][j].center.y, 10,10);
-				//drawDebugStuff(g2d);
-			}
+		if(playerCell.status == Status.pearl) {
+			//pursue pearl
+			return seekClosestPearl();
 		}
-	}
-	
-	public void drawPointCenters(int res, Graphics g, Map map) {
-		Graphics2D g2d = (Graphics2D) g;
-		g2d.setColor(new Color(255,255,255));
-		for (int i = 0; i < 10; i++){
-			for (int j = 0; j < 10; j++) {
-				g2d.fillOval(map.mapGrid[i][j].center.x, map.mapGrid[i][j].center.y, 10,10);
-				drawDebugStuff(g2d);
-			}
+		else {
+			//pursue cell center of closest pearl marked cell
+			Point closestPearlCellCenter = returnClosestPearlCellCenter();
+			
+			Point directionPoint = pointFromStartToGoal(playerPos, closestPearlCellCenter);
+			
+			float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
+			
+			float directionToPearl = -(float)Math.atan2(seekNormPoints[1],seekNormPoints[0]);
+			
+			DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
+			
+			return pearlPursuit;
 		}
+		
 	}
 
-	public Point returnClosestPearl() {
+	public Point returnClosestPearlCellCenter() {
 		
 		Point closestPearl = new Point();
 		float closestPearlDistance = 100000;
-		for (int i = 0; i < 10; i++){
-			for (int j = 0; j < 10; j++) {
+		for (int i = 0; i < res; i++){
+			for (int j = 0; j < res; j++) {
 				MapCell c = map.mapGrid[i][j];
 				if(c.status == Status.pearl) {
 					float currentPearlDistance = calculateDistance(c.center, playerPos);
@@ -132,4 +112,68 @@ public class Pathfinder extends AI {
 		return normPoint;
 	}
 	
+	public void checkIfPlayerReachedPearl() {
+		for(int i = 0; i < pearlPoints.length; i++) {
+			if(calculateDistance(pearlPoints[i], playerPos) < 5) {
+				pearlPoints[i] = new Point(99999999, 999999999);
+				return;
+			}
+		}
+	}
+	
+	public Point getClosestPearl (Point[] pearls, Point player) {
+
+		Point closestPearl = new Point();
+		float closestPearlDistance = 100000;
+		for(int i = 0; i < pearls.length; i++) {
+			float currentPearlDistance = calculateDistance(pearls[i], player);
+			if(currentPearlDistance < closestPearlDistance) {
+				closestPearl = pearls[i];
+				closestPearlDistance = currentPearlDistance;
+			}
+		}
+		return closestPearl;
+	}
+	
+	public DivingAction seekClosestPearl() {
+		
+		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
+		
+		Point directionPoint = pointFromStartToGoal(playerPos, closestPearl);
+		
+		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
+		
+		float directionToPearl = -(float)Math.atan2(seekNormPoints[1],seekNormPoints[0]);
+		
+		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
+		
+		return pearlPursuit;
+	}
+	
+	//---------DrawDebugStuff------------------------
+	
+	@Override
+	public void drawDebugStuff(Graphics2D gfx) {
+		gfx.setColor(new Color(255,255,255));
+		for (int i = 0; i < res; i++){
+			for (int j = 0; j < res; j++) {
+				MapCell c = map.mapGrid[i][j];
+				switch(c.status) {
+				case free: 
+					gfx.setColor(new Color (0,0,255,30));
+					break;
+				case obstacle: 
+					gfx.setColor(new Color(255,0,0,30));
+					break;
+				case pearl: 
+					gfx.setColor(new Color(0,255,0));
+				}
+				gfx.fillOval(c.center.x, c.center.y, 1,1);
+				gfx.drawLine((int)c.minX, (int)c.minY, (int)c.minX, (int)c.maxY);
+				gfx.drawLine((int)c.minX, (int)c.minY, (int)c.maxX, (int)c.minY);
+				gfx.drawLine((int)c.maxX, (int)c.minY, (int)c.maxX, (int)c.maxY);
+				gfx.drawLine((int)c.minX, (int)c.maxY, (int)c.maxX, (int)c.maxY);
+			}
+		}
+	}
 }

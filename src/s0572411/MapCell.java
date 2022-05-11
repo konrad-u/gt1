@@ -15,6 +15,8 @@ public class MapCell {
 	
 	public float minX, maxX, minY, maxY;
 	
+	public Point tl, tr, bl, br;
+	
 	//enum status describes either if cell is free (i.e. swimmable),
 	//an obstacle (so not to be considered for path) 
 	//or a pearl (diver is then to find the closest pearl and go there)

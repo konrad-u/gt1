@@ -45,11 +45,17 @@ public class Map{
 				mapGrid[i][j] = new MapCell();
 				mapGrid[i][j].mapX = i;
 				mapGrid[i][j].mapY = j;
-				mapGrid[i][j].center = new Point(divX/2 + i*divX, divY/2 + i*divY);
+				mapGrid[i][j].center = new Point(divX/2 + i*divX, divY/2 + j*divY);
 				mapGrid[i][j].minX = i*divX;
 				mapGrid[i][j].maxX = (i+1)*divX-1;
-				mapGrid[i][j].minY = i*divY;
-				mapGrid[i][j].maxY = (i+1)*divY-1;
+				mapGrid[i][j].minY = j*divY;
+				mapGrid[i][j].maxY = (j+1)*divY-1;
+				
+				mapGrid[i][j].tl = new Point((int)mapGrid[i][j].minX, (int)mapGrid[i][j].minY);
+				mapGrid[i][j].tr = new Point((int)mapGrid[i][j].maxX, (int)mapGrid[i][j].minY);
+				mapGrid[i][j].bl = new Point((int)mapGrid[i][j].minX, (int)mapGrid[i][j].maxY);
+				mapGrid[i][j].br = new Point((int)mapGrid[i][j].maxX, (int)mapGrid[i][j].maxY);
+				
 				setMapCellStatus(mapGrid[i][j], info);
 			}
 		}
@@ -60,15 +66,13 @@ public class Map{
 		Path2D[] obstacles = info.getScene().getObstacles();
 		Point[] pearlPoints = info.getScene().getPearl();
 		for(int i = 0; i < obstacles.length; i++) {
-			Point tl = new Point((int)cell.minX, (int)cell.minY);
-			Point tr = new Point((int)cell.maxX, (int)cell.minY);
-			Point bl = new Point((int)cell.minX, (int)cell.maxY);
-			Point br = new Point((int)cell.maxX, (int)cell.maxY);
-			if(obstacles[i].contains(tl) || obstacles[i].contains(tr) || obstacles[i].contains(bl) || obstacles[i].contains(br)) {
+			if(obstacles[i].contains(cell.tl) || obstacles[i].contains(cell.tr) || obstacles[i].contains(cell.bl) || obstacles[i].contains(cell.br)) {
 				//mark cell as obstacle
 				cell.status = Status.obstacle;
+				break;
 			}else {
 				cell.status = Status.free;
+				
 			}
 		}
 		for(int i = 0; i < pearlPoints.length; i++) {
