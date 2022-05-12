@@ -11,16 +11,21 @@ public class Map{
 	public MapCell[][] mapGrid;
 	
 
-	public Map(int res, Info info) {
-		mapGrid = new MapCell[res][res];
-		setupMap(res, info);
+	public Map(int wCells, int hCells, Info info, int res) {
+		mapGrid = new MapCell[wCells][hCells];
+		setupMap(wCells, hCells, info, res);
+		for (int i = 0; i < wCells; i++){
+			for (int j = 0; j < hCells; j++) {
+				mapGrid[i][j].initNeighbors(this, wCells, hCells);
+				}
+			}
 	}
 	
 	//this maybe a method of the MapCell class?
-	public MapCell PointToMapCell (int res, Point target) {
+	public MapCell PointToMapCell (int wCells, int hCells, Point target) {
 		
-		for (int i = 0; i < res; i++){
-			for (int j = 0; j < res; j++) {
+		for (int i = 0; i < wCells; i++){
+			for (int j = 0; j < hCells; j++) {
 				MapCell cell = mapGrid[i][j];
 				if(isPointInMapCell(target, cell)) {
 					return cell;
@@ -36,20 +41,18 @@ public class Map{
 	}
 	
 	//setting -1 for the maxX and maxY so no overlap between cells
-	public void setupMap(int res, Info info) {
-		int divX = info.getScene().getWidth()/res;
-		int divY = info.getScene().getHeight()/res;
+	public void setupMap(int wCells, int hCells, Info info, int res) {
 		
-		for (int i = 0; i < res; i++){
-			for (int j = 0; j < res; j++) {
+		for (int i = 0; i < wCells; i++){
+			for (int j = 0; j < hCells; j++) {
 				mapGrid[i][j] = new MapCell();
 				mapGrid[i][j].mapX = i;
 				mapGrid[i][j].mapY = j;
-				mapGrid[i][j].center = new Point(divX/2 + i*divX, divY/2 + j*divY);
-				mapGrid[i][j].minX = i*divX;
-				mapGrid[i][j].maxX = (i+1)*divX-1;
-				mapGrid[i][j].minY = j*divY;
-				mapGrid[i][j].maxY = (j+1)*divY-1;
+				mapGrid[i][j].center = new Point(res/2 + i*res, res/2 + j*res);
+				mapGrid[i][j].minX = i*res;
+				mapGrid[i][j].maxX = (i+1)*res-1;
+				mapGrid[i][j].minY = j*res;
+				mapGrid[i][j].maxY = (j+1)*res-1;
 				
 				mapGrid[i][j].tl = new Point((int)mapGrid[i][j].minX, (int)mapGrid[i][j].minY);
 				mapGrid[i][j].tr = new Point((int)mapGrid[i][j].maxX, (int)mapGrid[i][j].minY);
@@ -89,5 +92,7 @@ public class Map{
 		}
 		return false;
 	}
+	
+	
 
 }
