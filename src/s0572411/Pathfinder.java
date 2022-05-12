@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import lenz.htw.ai4g.ai.AI;
 import lenz.htw.ai4g.ai.DivingAction;
@@ -22,7 +23,7 @@ public class Pathfinder extends AI {
 	MapCell playerCell;
 	float maxVel = info.getMaxVelocity();
 
-	int res = 50;
+	int res = 40;
 	int w = info.getScene().getWidth();
 	int h = info.getScene().getHeight();
 
@@ -36,6 +37,7 @@ public class Pathfinder extends AI {
 		enlistForTournament(572411);
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
+		System.out.println(wCells * hCells);
 		InitializeAStar();
 	}
 
@@ -60,11 +62,16 @@ public class Pathfinder extends AI {
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 
 		checkIfPlayerReachedPearl();
+		
+		if(pathToGoal.size() > 0 && playerCell == pathToGoal.get(0)) {
+			pathToGoal.remove(0);
+		}
 
 		if (playerCell.status == Status.pearl) {
 			return seekPearl();
 		} else {
-			return seekClosestPearlCellCenter();
+			//return seekClosestPearlCellCenter();
+			return MoveToCell(pathToGoal.get(0));
 		}
 
 	}
@@ -72,9 +79,15 @@ public class Pathfinder extends AI {
 	
 	//-----------------A* Methods-----------
 	
-	ArrayList<MapCell> cellsInProcess = new ArrayList<MapCell>();
+	int debugCount = 0;
+	
+	 ArrayList<MapCell> cellsInProcess;
+	
+	ArrayList<MapCell> pathToGoal;
 	
 	public void InitializeAStar() {
+		cellsInProcess = new ArrayList<MapCell>();
+		pathToGoal  = new ArrayList<MapCell>();
 		for (int i = 0; i < wCells; i++) {
 			for (int j = 0; j < hCells; j++) {
 				map.mapGrid[i][j].graphCost = Float.MAX_VALUE;
@@ -86,55 +99,40 @@ public class Pathfinder extends AI {
 		currentCell.graphCost = 0;
 		cellsInProcess.add(currentCell);
 		calcNeighborDistances(currentCell);
+		System.out.println(debugCount);
+		Collections.reverse(pathToGoal);
+		OptimizePath();
 	}
 	
 	public void calcNeighborDistances(MapCell currentCell) {
-		ArrayList<MapCell> neighborCells = new ArrayList<MapCell>();
-		//O
-		if(currentCell.mapY -1 >=0 && !map.mapGrid[playerCell.mapX][playerCell.mapY-1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX][playerCell.mapY-1]);
-		}
-		//OR
-		if(currentCell.mapY -1 >=0 && currentCell.mapX+1 < wCells && !map.mapGrid[playerCell.mapX+1][playerCell.mapY-1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX+1][playerCell.mapY-1]);
-		}
-		//R
-		if(currentCell.mapX+1 < wCells && !map.mapGrid[playerCell.mapX+1][playerCell.mapY].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX+1][playerCell.mapY]);
-		}
-		//UR
-		if(currentCell.mapY +1 < hCells && currentCell.mapX+1 < wCells && !map.mapGrid[playerCell.mapX+1][playerCell.mapY+1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX+1][playerCell.mapY+1]);
-		}
-		//U
-		if(currentCell.mapY +1 < hCells && !map.mapGrid[playerCell.mapX][playerCell.mapY+1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX][playerCell.mapY+1]);
-		}
-		//UL
-		if(currentCell.mapY +1 < hCells && currentCell.mapX-1 >= 0 && !map.mapGrid[playerCell.mapX-1][playerCell.mapY+1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX-1][playerCell.mapY+1]);
-		}
-		//L
-		if(currentCell.mapX-1 >= 0 && !map.mapGrid[playerCell.mapX-1][playerCell.mapY].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX-1][playerCell.mapY]);
-		}
-		//OL
-		if(currentCell.mapY -1 >=0 && currentCell.mapX-1 >= 0 && !map.mapGrid[playerCell.mapX-1][playerCell.mapY-1].marked) {
-			neighborCells.add(map.mapGrid[playerCell.mapX-1][playerCell.mapY-1]);
-		}
-		for(MapCell mapCell : neighborCells) {
-			float distance = calculateDistance(playerPos, mapCell.center);
-			if(mapCell.graphCost > distance) {
-				mapCell.graphCost = distance;
-			}
+		debugCount++;
+		ArrayList<MapCell> unmarkedNeighbors = new ArrayList<MapCell>();
+		
+		for(MapCell mapCell : currentCell.neighborCells) {
+			if(!mapCell.marked && mapCell.status != Status.obstacle) {
+				float distance = calculateDistance(playerPos, mapCell.center);
+				if(mapCell.graphCost > distance) {
+					mapCell.graphCost = distance;
+				}
+				unmarkedNeighbors.add(mapCell);
+				}
 		}
 		currentCell.marked = true;
 		cellsInProcess.remove(currentCell);
-		cellsInProcess.addAll(neighborCells);
+		for(MapCell cell : unmarkedNeighbors) {
+			if(!cellsInProcess.contains(cell)) {
+				cellsInProcess.add(cell);
+			}
+		}
 		
 		MapCell smallestDistCell = null;
 		
 		for(MapCell mapCell : cellsInProcess) {
+			if(mapCell.status == Status.pearl) {
+				returnPath(mapCell);
+				smallestDistCell = null;
+				break;
+			}
 			if(smallestDistCell == null || mapCell.graphCost + mapCell.airCost < smallestDistCell.graphCost + smallestDistCell.airCost) {
 				smallestDistCell = mapCell;
 			}
@@ -144,6 +142,32 @@ public class Pathfinder extends AI {
 		}
 	}
 	
+	public void returnPath(MapCell currentCell){
+		pathToGoal.add(currentCell);
+		MapCell nextCell = null;
+		for(MapCell cell : currentCell.neighborCells) {
+			if(nextCell == null || cell.graphCost< nextCell.graphCost) {
+				nextCell = cell;
+			}
+		}
+		if(nextCell != playerCell) {
+			//StackOverflow here when path is too long?
+			returnPath(nextCell);
+		}
+	}
+	
+	public DivingAction MoveToCell(MapCell cell) {
+
+		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
+
+		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
+
+		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
+
+		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
+
+		return pearlPursuit;
+	}
 
 	// ----------------Pathfinder Methods----------------
 
@@ -181,11 +205,96 @@ public class Pathfinder extends AI {
 		return pearlPursuit;
 	}
 
-	public DivingAction DijkstraToClosestPearlCellCenter() {
 
-		return null;
+	public void OptimizePath() {
+		int startIndex = 0;
+		int endIndex = 2;
+		if(pathToGoal.size() >2) {
+			while(startIndex <= pathToGoal.size() - 3) {
+				// endIndexOutOfBounds error
+				System.out.println("indexes" +  startIndex +  "," +  endIndex + ", " + "pathToGoal size"+ pathToGoal.size());
+				boolean optimizeDone = false;
+				while(!optimizeDone && pathToGoal.size() > 2) {
+					
+					MapCell start = pathToGoal.get(startIndex);
+					MapCell goal = pathToGoal.get(endIndex);
+					
+					Point vector = pointFromStartToGoal(start.center, goal.center);
+
+					ArrayList <MapCell> cellsInPath = new ArrayList<MapCell>();
+					findCellsInLineOfSight(start, goal, cellsInPath);
+					boolean lineOfSightIsClear = true;
+					for(MapCell cell : cellsInPath) {
+						if(cell.status == Status.obstacle) {
+							lineOfSightIsClear = false;
+							break;
+						}
+					}
+					if(lineOfSightIsClear) {
+						pathToGoal.remove(startIndex+1);
+					} else {
+						optimizeDone = true;
+					}
+				}
+				startIndex++;
+				endIndex++;
+			}
+		}
+		
+	}
+	
+	public void findCellsInLineOfSight(MapCell start, MapCell goal, ArrayList<MapCell> cellsInPath) {
+		for(MapCell cell : start.neighborCells) {
+			if(cell == goal) {
+				break;
+			}
+			if(lineRect(start.center.x, start.center.y, goal.center.x, goal.center.y, cell.tl.x, cell.tl.y, res,res )) {
+				cellsInPath.add(cell);
+				findCellsInLineOfSight(cell, goal, cellsInPath);
+				break;
+			}
+		}
+	}
+	
+	//source for two following methods: http://www.jeffreythompson.org/collision-detection/line-rect.php
+	// LINE/RECTANGLE
+	boolean lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh) {
+
+	  // check if the line has hit any of the rectangle's sides
+	  // uses the Line/Line function below
+	  boolean left =   lineLine(x1,y1,x2,y2, rx,ry,rx, ry+rh);
+	  boolean right =  lineLine(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh);
+	  boolean top =    lineLine(x1,y1,x2,y2, rx,ry, rx+rw,ry);
+	  boolean bottom = lineLine(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh);
+
+	  // if ANY of the above are true, the line
+	  // has hit the rectangle
+	  if (left || right || top || bottom) {
+	    return true;
+	  }
+	  return false;
 	}
 
+
+	// LINE/LINE
+	boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+
+	  // calculate the direction of the lines
+	  float uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+	  float uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+	  // if uA and uB are between 0-1, lines are colliding
+	  if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+
+	    // optionally, draw a circle where the lines meet
+	    //float intersectionX = x1 + (uA * (x2-x1));
+	    //float intersectionY = y1 + (uA * (y2-y1));
+
+	    return true;
+	  }
+	  return false;
+	}
+	
 	// ---------------------------W1 methods----------------------
 
 	public float calculateDistance(Point start, Point goal) {
@@ -213,7 +322,7 @@ public class Pathfinder extends AI {
 				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.collected;
 				pearlPoints[i] = new Point(99999999, 999999999);
 				//new A* 
-				
+				InitializeAStar();
 				return;
 			}
 		}
@@ -252,7 +361,7 @@ public class Pathfinder extends AI {
 
 	@Override
 	public void drawDebugStuff(Graphics2D gfx) {
-		gfx.setColor(new Color(255, 255, 255));
+		//gfx.setColor(new Color(255, 255, 255));
 		for (int i = 0; i < wCells; i++) {
 			for (int j = 0; j < hCells; j++) {
 				MapCell c = map.mapGrid[i][j];
@@ -276,5 +385,11 @@ public class Pathfinder extends AI {
 				gfx.drawLine((int) c.minX, (int) c.maxY, (int) c.maxX, (int) c.maxY);
 			}
 		}
+		for(int i = 1; i < pathToGoal.size(); i++) {
+			gfx.setColor(new Color(255,255,255));
+			gfx.drawLine(pathToGoal.get(i).center.x, pathToGoal.get(i).center.y, pathToGoal.get(i-1).center.x, pathToGoal.get(i-1).center.y);
+		}
 	}
+	
+	
 }
