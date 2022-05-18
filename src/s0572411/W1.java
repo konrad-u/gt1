@@ -1,6 +1,7 @@
 package s0572411;
 
 import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Path2D;
 
@@ -18,6 +19,13 @@ public class W1 extends AI {
 	Point playerPos;
 	int obsDistance = 5;
 	int changeDivision = 10;
+	Point pointAhead;
+	Point cwPointAhead;
+	Point ccwPointAhead;
+	int aheadFactor = 20;
+	int avoidanceFactor = 20;
+	float fleeAngleFactor = 4.9f;
+	float orientation;
 	
 
 	public W1(Info info) {
@@ -45,6 +53,14 @@ public class W1 extends AI {
 	public PlayerAction update() {
 		playerPos = new Point((int)info.getX(), (int)info.getY());
 		
+		orientation = info.getOrientation();
+		
+		double pointX = playerPos.x + (aheadFactor * Math.cos(orientation));
+		double pointY = playerPos.y - (aheadFactor * Math.sin(orientation));
+		pointAhead =  new Point((int) pointX, (int)pointY);
+		
+		setSurroundingsPoints();
+		
 		checkIfPlayerReachedPearl(); 
 		
 		//return new DivingAction(1.0f,3.14f);
@@ -67,15 +83,34 @@ public class W1 extends AI {
 		
 		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
 		
-		Point obstacleAvoidance = getFleeFromObstacle();
+		Point coll = aheadCollisionPoint();
 		
-		if(obstacleAvoidance != null) {
-			//need new compensation function here
-			
-			//if object in way
-			
-			return null;
-			
+		if(coll != null) {
+			if(!isPointAnObstacle(cwPointAhead)) {
+				
+				Point altPoint = pointFromStartToGoal(playerPos, cwPointAhead);
+				
+				float[] altNormPoints = normalizePointToFloatArray(altPoint);
+				
+				float directionToAlt = -(float)Math.atan2(altNormPoints[1],seekNormPoints[0]);
+				
+				DivingAction altPursuit = new DivingAction(maxVel, directionToAlt);
+				
+				//return averageTwoDAs(pearlPursuit, altPursuit);
+				return altPursuit;
+			}
+			else {
+Point altPoint = pointFromStartToGoal(playerPos, ccwPointAhead);
+				
+				float[] altNormPoints = normalizePointToFloatArray(altPoint);
+				
+				float directionToAlt = -(float)Math.atan2(altNormPoints[1],seekNormPoints[0]);
+				
+				DivingAction altPursuit = new DivingAction(maxVel, directionToAlt);
+				
+				//return averageTwoDAs(pearlPursuit, altPursuit);
+				return altPursuit;
+			}
 		}
 		
 		return pearlPursuit;
@@ -142,21 +177,7 @@ public class W1 extends AI {
 		}
 		return closestPearl;
 	}
-	
-	public Point getFleeFromObstacle() {
-		//this method should only target the point ahead of the diver; how do I get that?
-		
-		// new 45° approach; to each side of straight ahead, get the points +- 45°; if the center i.e. current
-		// direction hits a target, check if either one doesn't. choose the way that is closer to the goal and is also 
-		// not hitting anything else. 
-		
-	DivingAction currentDA = new DivingAction(info.getVelocity(), info.getOrientation());
-	
-	
-		
-		return null;
-	}
-	
+
 	public Point[] getPointSurrounding(int distanceFromPoint, Point pointOfSurrounding) {
 		int i = distanceFromPoint;
 		Point[] playerSurrounding = new Point[8];
@@ -188,5 +209,79 @@ public class W1 extends AI {
 		return normPoint;
 	}
 
+	// new methods for pathfinder but are obstacle avoidance
 	
+	public Point aheadCollisionPoint() {
+		for (int i = 0; i < aheadFactor; i++) {
+			double cX = playerPos.x + (i * Math.cos(orientation));
+			double cY = playerPos.y - ( i * Math.sin(orientation));
+			double bX = playerPos.x + ((i-1) * Math.cos(orientation));
+			double bY = playerPos.y - ( (i-1) * Math.sin(orientation));
+			Point b = new Point((int) bX, (int) bY);
+			Point c =  new Point((int) cX, (int)cY);
+			
+			//for(int j = 0; j < obstacles.length; j++) {
+				//if(obstacles[j].contains(c) && !isPointAPearl(b)) {
+							//return c;
+				//}
+			//}
+			if(isPointAnObstacle(c) && !isPointAPearl(b)) {
+				return c;
+			}
+		}
+		return null;
+	}
+	
+	public boolean isPointAPearl(Point p) {
+		for(int i = 0; i < pearlPoints.length; i++) {
+			if(p == pearlPoints[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean isPointAnObstacle(Point p) {
+		for(int i = 0; i < obstacles.length; i++) {
+			if(obstacles[i].contains(p)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public void setSurroundingsPoints() {
+		Point coll = aheadCollisionPoint();
+		if(coll!= null) {
+			//points clockwise and counterclockwise of pointAhead
+			double pointcwX = coll.x + (aheadFactor * Math.cos(orientation+ fleeAngleFactor));
+			double pointcwY = coll.y - ( aheadFactor * Math.sin(orientation+ fleeAngleFactor));
+			cwPointAhead =  new Point((int) pointcwX, (int)pointcwY);
+			
+			double pointccwX = coll.x + (aheadFactor * Math.cos(orientation- fleeAngleFactor));
+			double pointccwY = coll.y - ( aheadFactor * Math.sin(orientation- fleeAngleFactor));
+			ccwPointAhead =  new Point((int) pointccwX, (int)pointccwY);
+		}
+		else {
+			//points clockwise and counterclockwise of pointAhead
+			double pointcwX = pointAhead.x + (aheadFactor * Math.cos(orientation+ fleeAngleFactor));
+			double pointcwY = pointAhead.y - ( aheadFactor * Math.sin(orientation+ fleeAngleFactor));
+			cwPointAhead =  new Point((int) pointcwX, (int)pointcwY);
+			
+			double pointccwX = pointAhead.x + (aheadFactor * Math.cos(orientation- fleeAngleFactor));
+			double pointccwY = pointAhead.y - ( aheadFactor * Math.sin(orientation- fleeAngleFactor));
+			ccwPointAhead =  new Point((int) pointccwX, (int)pointccwY);
+		}
+	}
+	
+	public void drawDebugStuff(Graphics2D gfx) {
+		gfx.setColor(new Color(0,0,0));
+		gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
+		Point coll = aheadCollisionPoint();
+		gfx.drawOval(cwPointAhead.x, cwPointAhead.y, 5,5);
+		gfx.drawOval(ccwPointAhead.x, ccwPointAhead.y, 5,5);
+		if(coll != null) {
+			gfx.drawOval(coll.x,  coll.y,  10,  10);
+		}
+	}
 }

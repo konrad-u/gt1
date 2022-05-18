@@ -22,8 +22,10 @@ public class Pathfinder extends AI {
 	Point playerPos;
 	MapCell playerCell;
 	float maxVel = info.getMaxVelocity();
+	Point pointAhead;
+	int aheadFactor = 50;
 
-	int res = 40;
+	int res = 60;
 	int w = info.getScene().getWidth();
 	int h = info.getScene().getHeight();
 
@@ -60,6 +62,12 @@ public class Pathfinder extends AI {
 	public PlayerAction update() {
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
+		
+		float directionToPearl = info.getOrientation();
+		
+		double pointX = playerPos.x + (aheadFactor * Math.cos(directionToPearl));
+		double pointY = playerPos.y - ( aheadFactor * Math.sin(directionToPearl));
+		pointAhead =  new Point((int) pointX, (int)pointY);
 
 		checkIfPlayerReachedPearl();
 		
@@ -351,6 +359,8 @@ public class Pathfinder extends AI {
 		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 
 		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
+		
+		// this is where flee behavior comes in
 
 		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
 
@@ -389,6 +399,8 @@ public class Pathfinder extends AI {
 			gfx.setColor(new Color(255,255,255));
 			gfx.drawLine(pathToGoal.get(i).center.x, pathToGoal.get(i).center.y, pathToGoal.get(i-1).center.x, pathToGoal.get(i-1).center.y);
 		}
+		gfx.setColor(new Color(0,0,0));
+		gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
 	}
 	
 	
