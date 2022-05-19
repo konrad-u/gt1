@@ -22,7 +22,7 @@ public class W1 extends AI {
 	Point pointAhead;
 	Point cwPointAhead;
 	Point ccwPointAhead;
-	int aheadFactor = 20;
+	int aheadFactor = 60;
 	int avoidanceFactor = 20;
 	float fleeAngleFactor = 4.9f;
 	float orientation;
@@ -100,7 +100,7 @@ public class W1 extends AI {
 				return altPursuit;
 			}
 			else {
-Point altPoint = pointFromStartToGoal(playerPos, ccwPointAhead);
+				Point altPoint = pointFromStartToGoal(playerPos, ccwPointAhead);
 				
 				float[] altNormPoints = normalizePointToFloatArray(altPoint);
 				
@@ -275,7 +275,7 @@ Point altPoint = pointFromStartToGoal(playerPos, ccwPointAhead);
 	}
 	
 	public void drawDebugStuff(Graphics2D gfx) {
-		gfx.setColor(new Color(0,0,0));
+		gfx.setColor(new Color(255,255, 255));
 		gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
 		Point coll = aheadCollisionPoint();
 		gfx.drawOval(cwPointAhead.x, cwPointAhead.y, 5,5);

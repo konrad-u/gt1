@@ -6,6 +6,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 import lenz.htw.ai4g.ai.AI;
@@ -22,10 +23,12 @@ public class Pathfinder extends AI {
 	Point playerPos;
 	MapCell playerCell;
 	float maxVel = info.getMaxVelocity();
-	Point pointAhead;
-	int aheadFactor = 50;
+	Point pointAbove;
+	Point pointBelow;
+	int belowFactor = 50;
+	int aboveFactor = 25;
 
-	int res = 60;
+	int res = 50;
 	int w = info.getScene().getWidth();
 	int h = info.getScene().getHeight();
 
@@ -65,9 +68,9 @@ public class Pathfinder extends AI {
 		
 		float directionToPearl = info.getOrientation();
 		
-		double pointX = playerPos.x + (aheadFactor * Math.cos(directionToPearl));
-		double pointY = playerPos.y - ( aheadFactor * Math.sin(directionToPearl));
-		pointAhead =  new Point((int) pointX, (int)pointY);
+		double pointX = playerPos.x + (belowFactor * Math.cos(directionToPearl));
+		double pointY = playerPos.y - ( belowFactor * Math.sin(directionToPearl));
+		pointAbove =  new Point((int) pointX, (int)pointY);
 
 		checkIfPlayerReachedPearl();
 		
@@ -93,6 +96,8 @@ public class Pathfinder extends AI {
 	
 	ArrayList<MapCell> pathToGoal;
 	
+	//graphCost is player to cell, airCost is cell to closest pearl
+	
 	public void InitializeAStar() {
 		cellsInProcess = new ArrayList<MapCell>();
 		pathToGoal  = new ArrayList<MapCell>();
@@ -107,7 +112,8 @@ public class Pathfinder extends AI {
 		currentCell.graphCost = 0;
 		cellsInProcess.add(currentCell);
 		calcNeighborDistances(currentCell);
-		System.out.println(debugCount);
+		
+		//System.out.println(debugCount);
 		Collections.reverse(pathToGoal);
 		OptimizePath();
 	}
@@ -118,7 +124,8 @@ public class Pathfinder extends AI {
 		
 		for(MapCell mapCell : currentCell.neighborCells) {
 			if(!mapCell.marked && mapCell.status != Status.obstacle) {
-				float distance = calculateDistance(playerPos, mapCell.center);
+				//float distance = calculateDistance(playerPos, mapCell.center);
+				float distance = calculateDistance(currentCell.center, mapCell.center) + currentCell.graphCost;
 				if(mapCell.graphCost > distance) {
 					mapCell.graphCost = distance;
 				}
@@ -137,6 +144,32 @@ public class Pathfinder extends AI {
 		
 		for(MapCell mapCell : cellsInProcess) {
 			if(mapCell.status == Status.pearl) {
+				
+				// print cost grid
+
+				for (int i = 0; i < hCells; i++) {
+					System.out.println(" ");
+					for (int j = 0; j < wCells; j++) {
+						if(map.mapGrid[j][i].status == Status.pearl) {
+							System.out.print("X");
+						}
+						if(map.mapGrid[j][i].graphCost == Float.MAX_VALUE) {
+							System.out.print( " -1 ");
+						}else {
+							if((int)map.mapGrid[j][i].graphCost < 10) {
+								System.out.print(" " + (int)map.mapGrid[j][i].graphCost + "  ");
+							}
+							else if((int)map.mapGrid[j][i].graphCost < 100) {
+								System.out.print(" " + (int)map.mapGrid[j][i].graphCost + " ");
+							}
+							else {
+								System.out.print((int)map.mapGrid[j][i].graphCost + " ");
+							}
+						}
+						}
+					}
+				System.out.println(" --------------------------------------------------- ");
+				
 				returnPath(mapCell);
 				smallestDistCell = null;
 				break;
@@ -151,6 +184,7 @@ public class Pathfinder extends AI {
 	}
 	
 	public void returnPath(MapCell currentCell){
+		//System.out.println(" current cell graph cost: " + currentCell.graphCost);
 		pathToGoal.add(currentCell);
 		MapCell nextCell = null;
 		for(MapCell cell : currentCell.neighborCells) {
@@ -165,14 +199,74 @@ public class Pathfinder extends AI {
 	}
 	
 	public DivingAction MoveToCell(MapCell cell) {
+		
+		Point p1 = new Point(0,1);
+		Point p2 = new Point(1,0);
+		
+		float[] fp1 = normalizePointToFloatArray(p1);
+		float[] fp2 = normalizePointToFloatArray(p2);
+		
+		float[] afp1 = averageTwoPointsWithWeighing(fp1, fp2, 0.25f, 0.75f);
+		
+		System.out.println(" the test point is " + afp1[0] + ", " + afp1[1]);
 
 		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
+		
+		float[] normDir = normalizePointToFloatArray(directionPoint);
+		
+		float orientation = info.getOrientation();
+		
+		double pointX = playerPos.x + (aboveFactor * Math.cos(orientation + Math.PI/2));
+		double pointY = playerPos.y - (aboveFactor * Math.sin(orientation + Math.PI/2));
+		pointAbove =  new Point((int) pointX, (int)pointY);		
+		float[] normAbove = normalizePointToFloatArray(pointAbove);
+		
+		 pointX = playerPos.x + (belowFactor * Math.cos(orientation - Math.PI/2));
+		 pointY = playerPos.y - (belowFactor * Math.sin(orientation - Math.PI/2));
+		pointBelow =  new Point((int) pointX, (int)pointY);
+		float[] normBelow = normalizePointToFloatArray(pointBelow);
+		
+		if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
+			float[] bPoints = averageTwoPointsWithWeighing(normBelow, normAbove, 0.5f, 0.5f);
+			float[] normbPointsFlipped = new float[] {
+					-bPoints[0], -bPoints[1]
+			};
+			normDir = averageTwoPointsWithWeighing(normDir, normbPointsFlipped, 0.6f, 0.4f);
+			
+		}
+		
+		else if(isPointAnObstacle(pointAbove)) {
+			System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
+			float[] normAboveFlipped = new float[] {
+					-normAbove[0], -normAbove[1]
+			};
+			normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, 0.6f, 0.4f);
+			System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
+			
+			 //directionPoint = directionPoint + pointFromStartToGoal(pointAbove, playerPos);
+			//pointfromstart to goal must be normalized
+			//weight factor < 1 for 
+			//weightfactor = distance zum Obstacle
+		}
+		else if(isPointAnObstacle(pointBelow)) {
+			System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
+			float[] normBelowFlipped = new float[] {
+					-normBelow[0], -normBelow[1]
+			};
+			normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, 0.6f, 0.4f);
 
-		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
+			System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
+		}
 
-		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
+		//float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 
-		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
+		float directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
+		
+		//System.out.println(" the final normDir is " + normDir[0] + " , " + normDir[1]);
+		
+		
+
+		DivingAction pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
 
 		return pearlPursuit;
 	}
@@ -222,7 +316,7 @@ public class Pathfinder extends AI {
 				// endIndexOutOfBounds error
 				System.out.println("indexes" +  startIndex +  "," +  endIndex + ", " + "pathToGoal size"+ pathToGoal.size());
 				boolean optimizeDone = false;
-				while(!optimizeDone && pathToGoal.size() > 2) {
+				while(!optimizeDone && pathToGoal.size() > 2  && endIndex < pathToGoal.size()) {
 					
 					MapCell start = pathToGoal.get(startIndex);
 					MapCell goal = pathToGoal.get(endIndex);
@@ -318,9 +412,17 @@ public class Pathfinder extends AI {
 
 	public float[] normalizePointToFloatArray(Point point) {
 		float normPoint[] = new float[2];
-		float pointVectorLength = calculateDistance(playerPos, point);
-		normPoint[0] = (point.x / pointVectorLength);
-		normPoint[1] = (point.y / pointVectorLength);
+		
+		normPoint[0] = (point.x /(float) Math.sqrt(Math.pow(point.x, 2) + Math.pow(point.y, 2)));
+		normPoint[1] = (point.y / (float) Math.sqrt(Math.pow(point.x, 2) + Math.pow(point.y, 2)));
+		return normPoint;
+	}
+	
+	public float[] normalizeVectorToFloatArray(float[] vector) {
+		float normPoint[] = new float[2];
+		
+		normPoint[0] = (vector[0] /(float) Math.sqrt(Math.pow(vector[0] , 2) + Math.pow(vector[1] , 2)));
+		normPoint[1] = (vector[1] / (float) Math.sqrt(Math.pow(vector[0] , 2) + Math.pow(vector[1], 2)));
 		return normPoint;
 	}
 
@@ -366,6 +468,23 @@ public class Pathfinder extends AI {
 
 		return pearlPursuit;
 	}
+	
+	public boolean isPointAnObstacle(Point p) {
+		for(int i = 0; i < obstacles.length; i++) {
+			if(obstacles[i].contains(p)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public float[] averageTwoPointsWithWeighing(float[] f1, float[] f2, float p1w, float p2w) {
+		 
+		float[] f = new float[2];
+		f[0] =( f1[0] * p1w  + f2[0] * p2w)/2;
+		f[1] = (f1[1] * p1w + f2[1] * p2w)/2;
+		return normalizeVectorToFloatArray(f);
+	}
 
 	// ---------DrawDebugStuff------------------------
 
@@ -399,8 +518,11 @@ public class Pathfinder extends AI {
 			gfx.setColor(new Color(255,255,255));
 			gfx.drawLine(pathToGoal.get(i).center.x, pathToGoal.get(i).center.y, pathToGoal.get(i-1).center.x, pathToGoal.get(i-1).center.y);
 		}
-		gfx.setColor(new Color(0,0,0));
-		gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
+		gfx.setColor(new Color(0,255,0));
+		//gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
+		gfx.drawOval(pointAbove.x,  pointAbove.y,  20, 20);
+		gfx.setColor(new Color(255,0,0));
+		gfx.drawOval(pointBelow.x,  pointBelow.y,  20, 20);
 	}
 	
 	
