@@ -1,12 +1,12 @@
 package s0572411;
 
 import java.awt.Color;
-import java.awt.Graphics;
+//import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
-import java.util.Arrays;
+//import java.util.Arrays;
 import java.util.Collections;
 
 import lenz.htw.ai4g.ai.AI;
@@ -68,7 +68,7 @@ public class Pathfinder extends AI {
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 		
-		float directionToPearl = info.getOrientation();
+		//float directionToPearl = info.getOrientation();
 		
 		updateAboveBelowPoints();
 		
@@ -119,7 +119,7 @@ public class Pathfinder extends AI {
 		
 		//System.out.println(debugCount);
 		Collections.reverse(pathToGoal);
-		OptimizePath();
+		//OptimizePath();
 	}
 	
 	public void calcNeighborDistances(MapCell currentCell) {
@@ -233,7 +233,6 @@ public class Pathfinder extends AI {
 		
 		else if(isPointAnObstacle(pointAbove)) {
 			System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
-			//trying with non negative values
 			float[] normAboveFlipped = new float[] {
 					-normAbove[0], -normAbove[1]
 			};
@@ -248,7 +247,8 @@ public class Pathfinder extends AI {
 		else if(isPointAnObstacle(pointBelow)) {
 			System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normBelowFlipped = new float[] {
-					-normBelow[0], -normBelow[1]
+					//trying with non negative values
+					normBelow[0], normBelow[1]
 			};
 			normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
 
@@ -335,7 +335,7 @@ public class Pathfinder extends AI {
 					MapCell start = pathToGoal.get(startIndex);
 					MapCell goal = pathToGoal.get(endIndex);
 					
-					Point vector = pointFromStartToGoal(start.center, goal.center);
+					//Point vector = pointFromStartToGoal(start.center, goal.center);
 
 					ArrayList <MapCell> cellsInPath = new ArrayList<MapCell>();
 					findCellsInLineOfSight(start, goal, cellsInPath);
