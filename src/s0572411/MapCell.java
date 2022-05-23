@@ -22,9 +22,6 @@ public class MapCell {
 	
 	public boolean marked;
 	
-	//enum status describes either if cell is free (i.e. swimmable),
-	//an obstacle (so not to be considered for path) 
-	//or a pearl (diver is then to find the closest pearl and go there)
 	public enum Status{
 		free,obstacle,pearl, collected
 	}
@@ -37,6 +34,7 @@ public class MapCell {
 		
 	}
 	
+	//check if neighbors are obstacles as well?
 	public void initNeighbors(Map map, int wCells, int hCells) {
 		
 		//O
