@@ -29,6 +29,8 @@ public class Pathfinder extends AI {
 	int aboveFactor = 20;
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
+	
+	Point directionPoint;
 
 	int res = 40;
 	int w = info.getScene().getWidth();
@@ -50,7 +52,7 @@ public class Pathfinder extends AI {
 
 	@Override
 	public String getName() {
-		return "Könnte klappen";
+		return "Tomitaro Fujii";
 	}
 
 	@Override
@@ -245,11 +247,13 @@ public class Pathfinder extends AI {
 			//weightfactor = distance zum Obstacle
 		}
 		else if(isPointAnObstacle(pointBelow)) {
-			System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
+			//System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normBelowFlipped = new float[] {
-					//trying with non negative values
+					//again no negatives
 					normBelow[0], normBelow[1]
 			};
+			//System.out.println(" the FLIPPED BELOW point before is " + normBelowFlipped[0] + " , " +  normBelowFlipped[1]);
+			//System.out.println("-------THE ACTUAL FLIPPED BELOW IS " + (normBelowFlipped[0] * -1) + " , " + (normBelowFlipped[1] * -1));
 			normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
 
 			System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
@@ -277,7 +281,7 @@ public class Pathfinder extends AI {
 		double pointY = playerPos.y - (aboveFactor * Math.sin(orientation + Math.PI/2));
 		pointAbove =  new Point((int) pointX, (int)pointY);		
 		
-		pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
+		//pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
 		pointX = playerPos.x + (belowFactor * Math.cos(orientation - Math.PI/2));
 		pointY = playerPos.y - (belowFactor * Math.sin(orientation - Math.PI/2));
 		pointBelow =  new Point((int) pointX, (int)pointY);
@@ -372,7 +376,7 @@ public class Pathfinder extends AI {
 		}
 	}
 	
-	//source for two following methods: http://www.jeffreythompson.org/collision-detection/line-rect.php
+	//source for two following methods lineRect and lineLine: http://www.jeffreythompson.org/collision-detection/line-rect.php
 	// LINE/RECTANGLE
 	boolean lineRect(float x1, float y1, float x2, float y2, float rx, float ry, float rw, float rh) {
 
@@ -475,8 +479,6 @@ public class Pathfinder extends AI {
 		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 
 		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
-		
-		// this is where flee behavior comes in
 
 		DivingAction pearlPursuit = new DivingAction(maxVel, directionToPearl);
 
@@ -486,6 +488,7 @@ public class Pathfinder extends AI {
 	public boolean isPointAnObstacle(Point p) {
 		for(int i = 0; i < obstacles.length; i++) {
 			if(obstacles[i].contains(p)) {
+				System.out.println("one of the points is in an obstacle");
 				return true;
 			}
 		}
@@ -537,6 +540,9 @@ public class Pathfinder extends AI {
 		gfx.drawOval(pointAbove.x,  pointAbove.y,  10, 10);
 		gfx.setColor(new Color(255,0,0));
 		gfx.drawOval(pointBelow.x,  pointBelow.y,  10, 10);
+		
+		gfx.setColor(new Color(255,255,255));
+		gfx.drawOval(playerPos.x,  playerPos.y,  10, 10);
 	}
 	
 	
