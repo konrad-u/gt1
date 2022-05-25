@@ -30,6 +30,9 @@ public class Pathfinder extends AI {
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
 	
+	float maxAir;
+	float currAir;
+	
 	Point directionPoint;
 
 	int res = 40;
@@ -48,6 +51,7 @@ public class Pathfinder extends AI {
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 		System.out.println(wCells * hCells);
 		InitializeAStar();
+		maxAir = info.getMaxAir();
 	}
 
 	@Override
@@ -67,6 +71,9 @@ public class Pathfinder extends AI {
 
 	@Override
 	public PlayerAction update() {
+		currAir = info.getAir() / maxAir;
+		System.out.println(currAir*100 + "% air left." );
+		
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 		
@@ -218,6 +225,15 @@ public class Pathfinder extends AI {
 
 		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
 		
+		//-----------------------AIR TANK CHECK STUFF ABGABE 3--------------------
+		
+		if(currAir < 0.5) {
+			Point nextPearlAir = new Point(cell.center.x, 0);
+			directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
+		}
+		
+		//---------------------------------------------------------------------------------
+		
 		float[] normDir = normalizePointToFloatArray(directionPoint);
 		
 		float[] normAbove = normalizePointToFloatArray(pointAbove);
@@ -234,12 +250,12 @@ public class Pathfinder extends AI {
 		}
 		
 		else if(isPointAnObstacle(pointAbove)) {
-			System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
+			//System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normAboveFlipped = new float[] {
 					-normAbove[0], -normAbove[1]
 			};
 			normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, dirWeight, fleeWeight);
-			System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
+			//System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
 			
 			 //directionPoint = directionPoint + pointFromStartToGoal(pointAbove, playerPos);
 			//pointfromstart to goal must be normalized
@@ -256,7 +272,7 @@ public class Pathfinder extends AI {
 			//System.out.println("-------THE ACTUAL FLIPPED BELOW IS " + (normBelowFlipped[0] * -1) + " , " + (normBelowFlipped[1] * -1));
 			normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
 
-			System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
+			//System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
 		}
 
 		//float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
@@ -265,9 +281,18 @@ public class Pathfinder extends AI {
 		
 		//System.out.println(" the final normDir is " + normDir[0] + " , " + normDir[1]);
 		
+		DivingAction pearlPursuit;
 		
-
-		DivingAction pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
+		//-------------------------------new AIR METHODS simple conditional ----------------------------
+		
+		/*
+		if(currAir < 0.9) {
+			pearlPursuit = new DivingAction(maxVel, (float)Math.PI/2);
+		} else {
+			pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
+		} */
+		
+		pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
 
 		return pearlPursuit;
 	}
