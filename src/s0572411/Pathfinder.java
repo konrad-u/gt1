@@ -17,32 +17,37 @@ import s0572411.MapCell.Status;
 
 public class Pathfinder extends AI {
 
+	//---Info and Scene gets---
 	Point[] pearlPoints = info.getScene().getPearl();
 	Point[] visitedPearls = new Point[pearlPoints.length];
 	Path2D[] obstacles = info.getScene().getObstacles();
+	float maxVel = info.getMaxVelocity();
+	int w = info.getScene().getWidth();
+	int h = info.getScene().getHeight();
+	float maxAir = info.getMaxAir();
+	
+	//--Own variables: Map---
+	int res = 40;
+	int wCells = w / res;
+	int hCells = h / res;
+	Map map = new Map(wCells, hCells, info, res);
+	
+	//---Own variables: Player
 	Point playerPos;
 	MapCell playerCell;
-	float maxVel = info.getMaxVelocity();
 	Point pointAbove;
 	Point pointBelow;
 	int belowFactor = 20;
 	int aboveFactor = 20;
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
-	
-	float maxAir;
 	float currAir;
 	
-	Point directionPoint;
-
-	int res = 40;
-	int w = info.getScene().getWidth();
-	int h = info.getScene().getHeight();
-
-	int wCells = w / res;
-	int hCells = h / res;
-
-	Map map = new Map(wCells, hCells, info, res);
+	//---Enum for Optimize---
+	enum OptStrat{
+		shortenPath, straightToPearl
+	}
+	
 
 	public Pathfinder(Info info) {
 		super(info);
@@ -51,7 +56,6 @@ public class Pathfinder extends AI {
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 		System.out.println(wCells * hCells);
 		InitializeAStar();
-		maxAir = info.getMaxAir();
 	}
 
 	@Override
@@ -128,7 +132,7 @@ public class Pathfinder extends AI {
 		
 		//System.out.println(debugCount);
 		Collections.reverse(pathToGoal);
-		//OptimizePath();
+		OptimizePath(OptStrat.straightToPearl);
 	}
 	
 	public void calcNeighborDistances(MapCell currentCell) {
@@ -265,8 +269,7 @@ public class Pathfinder extends AI {
 		else if(isPointAnObstacle(pointBelow)) {
 			//System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normBelowFlipped = new float[] {
-					//again no negatives
-					normBelow[0], normBelow[1]
+					-normBelow[0], -normBelow[1]
 			};
 			//System.out.println(" the FLIPPED BELOW point before is " + normBelowFlipped[0] + " , " +  normBelowFlipped[1]);
 			//System.out.println("-------THE ACTUAL FLIPPED BELOW IS " + (normBelowFlipped[0] * -1) + " , " + (normBelowFlipped[1] * -1));
@@ -283,15 +286,6 @@ public class Pathfinder extends AI {
 		
 		DivingAction pearlPursuit;
 		
-		//-------------------------------new AIR METHODS simple conditional ----------------------------
-		
-		/*
-		if(currAir < 0.9) {
-			pearlPursuit = new DivingAction(maxVel, (float)Math.PI/2);
-		} else {
-			pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
-		} */
-		
 		pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
 
 		return pearlPursuit;
@@ -302,13 +296,13 @@ public class Pathfinder extends AI {
 	public void updateAboveBelowPoints(){
 		float orientation = info.getOrientation();
 		
-		double pointX = playerPos.x + (aboveFactor * Math.cos(orientation + Math.PI/2));
-		double pointY = playerPos.y - (aboveFactor * Math.sin(orientation + Math.PI/2));
+		double pointX = playerPos.x + (aboveFactor * Math.cos(orientation + Math.PI/2  * 0.3));
+		double pointY = playerPos.y - (aboveFactor * Math.sin(orientation + Math.PI/2  * 0.3));
 		pointAbove =  new Point((int) pointX, (int)pointY);		
 		
 		//pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
-		pointX = playerPos.x + (belowFactor * Math.cos(orientation - Math.PI/2));
-		pointY = playerPos.y - (belowFactor * Math.sin(orientation - Math.PI/2));
+		pointX = playerPos.x + (belowFactor * Math.cos(orientation - Math.PI/2  * 0.3));
+		pointY = playerPos.y - (belowFactor * Math.sin(orientation - Math.PI/2  * 0.3));
 		pointBelow =  new Point((int) pointX, (int)pointY);
 	}
 	
@@ -351,40 +345,49 @@ public class Pathfinder extends AI {
 	}
 
 
-	public void OptimizePath() {
-		int startIndex = 0;
-		int endIndex = 2;
-		if(pathToGoal.size() >2) {
-			while(startIndex <= pathToGoal.size() - 3) {
-				// endIndexOutOfBounds error
-				System.out.println("indexes" +  startIndex +  "," +  endIndex + ", " + "pathToGoal size"+ pathToGoal.size());
-				boolean optimizeDone = false;
-				while(!optimizeDone && pathToGoal.size() > 2  && endIndex < pathToGoal.size()) {
-					
-					MapCell start = pathToGoal.get(startIndex);
-					MapCell goal = pathToGoal.get(endIndex);
-					
-					//Point vector = pointFromStartToGoal(start.center, goal.center);
+	public void OptimizePath(OptStrat optStrat) {
+		
+		if(optStrat == OptStrat.shortenPath) {
+			int startIndex = 0;
+			int endIndex = 2;
+			if(pathToGoal.size() >2) {
+				while(startIndex <= pathToGoal.size() - 3) {
+					// endIndexOutOfBounds error
+					System.out.println("indexes" +  startIndex +  "," +  endIndex + ", " + "pathToGoal size"+ pathToGoal.size());
+					boolean optimizeDone = false;
+					while(!optimizeDone && pathToGoal.size() > 2  && endIndex < pathToGoal.size()) {
+						
+						MapCell start = pathToGoal.get(startIndex);
+						MapCell goal = pathToGoal.get(endIndex);
+						
+						//Point vector = pointFromStartToGoal(start.center, goal.center);
 
-					ArrayList <MapCell> cellsInPath = new ArrayList<MapCell>();
-					findCellsInLineOfSight(start, goal, cellsInPath);
-					boolean lineOfSightIsClear = true;
-					for(MapCell cell : cellsInPath) {
-						if(cell.status == Status.obstacle) {
-							lineOfSightIsClear = false;
-							break;
+						ArrayList <MapCell> cellsInPath = new ArrayList<MapCell>();
+						findCellsInLineOfSight(start, goal, cellsInPath);
+						boolean lineOfSightIsClear = true;
+						for(MapCell cell : cellsInPath) {
+							if(cell.status == Status.obstacle) {
+								lineOfSightIsClear = false;
+								break;
+							}
+						}
+						if(lineOfSightIsClear) {
+							pathToGoal.remove(startIndex+1);
+						} else {
+							optimizeDone = true;
 						}
 					}
-					if(lineOfSightIsClear) {
-						pathToGoal.remove(startIndex+1);
-					} else {
-						optimizeDone = true;
-					}
+					startIndex++;
+					endIndex++;
 				}
-				startIndex++;
-				endIndex++;
 			}
 		}
+		else if(optStrat == OptStrat.straightToPearl) {
+			// draw a straight line from diver to pearl
+			// if no point along line is in an obstacle, 
+			//set goal directly to pearlCell of pearl
+		}
+		
 		
 	}
 	
@@ -472,7 +475,7 @@ public class Pathfinder extends AI {
 	public void checkIfPlayerReachedPearl() {
 		for (int i = 0; i < pearlPoints.length; i++) {
 			if (calculateDistance(pearlPoints[i], playerPos) < 5) {
-				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.collected;
+				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.obstacle;
 				pearlPoints[i] = new Point(99999999, 999999999);
 				//new A* 
 				InitializeAStar();
