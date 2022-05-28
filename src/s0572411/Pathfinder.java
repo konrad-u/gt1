@@ -4,10 +4,14 @@ import java.awt.Color;
 //import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 //import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 import lenz.htw.ai4g.ai.AI;
 import lenz.htw.ai4g.ai.DivingAction;
@@ -102,6 +106,17 @@ public class Pathfinder extends AI {
 			return MoveToCell(pathToGoal.get(0));
 		}
 
+	}
+	
+	//----------------W3 Methods-----------
+	
+	
+
+	public boolean isClearToClosestPearl() {
+		
+	
+		
+		return false;
 	}
 	
 	
@@ -306,8 +321,6 @@ public class Pathfinder extends AI {
 		pointBelow =  new Point((int) pointX, (int)pointY);
 	}
 	
-	
-
 	// ----------------Pathfinder Methods----------------
 
 	public Point returnClosestPearlCellCenter() {
@@ -385,7 +398,14 @@ public class Pathfinder extends AI {
 		else if(optStrat == OptStrat.straightToPearl) {
 			// draw a straight line from diver to pearl
 			// if no point along line is in an obstacle, 
-			//set goal directly to pearlCell of pearl
+			//set goal directly to pearlCell of pearl1
+			
+			// use findCellsInLineOf Sight? if res low enough, as otherwise may pass edges that wouldn't block the diver....
+			
+			ArrayList<MapCell> ArrToPearl = new ArrayList<MapCell>();
+			Point nextPearlCen = returnClosestPearlCellCenter();
+			
+			
 		}
 		
 		
@@ -535,7 +555,7 @@ public class Pathfinder extends AI {
 
 	@Override
 	public void drawDebugStuff(Graphics2D gfx) {
-		//gfx.setColor(new Color(255, 255, 255));
+		//--drawing in cell types---
 		for (int i = 0; i < wCells; i++) {
 			for (int j = 0; j < hCells; j++) {
 				MapCell c = map.mapGrid[i][j];
@@ -559,10 +579,12 @@ public class Pathfinder extends AI {
 				gfx.drawLine((int) c.minX, (int) c.maxY, (int) c.maxX, (int) c.maxY);
 			}
 		}
+		//---drawing in path to goal---
 		for(int i = 1; i < pathToGoal.size(); i++) {
 			gfx.setColor(new Color(255,255,255));
 			gfx.drawLine(pathToGoal.get(i).center.x, pathToGoal.get(i).center.y, pathToGoal.get(i-1).center.x, pathToGoal.get(i-1).center.y);
 		}
+		//---drawing in points around and of player---
 		gfx.setColor(new Color(0,255,0));
 		//gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
 		gfx.drawOval(pointAbove.x,  pointAbove.y,  10, 10);
@@ -571,6 +593,11 @@ public class Pathfinder extends AI {
 		
 		gfx.setColor(new Color(255,255,255));
 		gfx.drawOval(playerPos.x,  playerPos.y,  10, 10);
+		
+		//---drawing in line to closestPearl, if obstacles in path draw red, else draw green using  new method
+		gfx.setColor(new Color(255,0,0));
+		gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
+		
 	}
 	
 	
