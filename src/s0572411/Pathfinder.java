@@ -47,6 +47,8 @@ public class Pathfinder extends AI {
 	float fleeWeight = 1-dirWeight;
 	float currAir;
 	
+	ArrayList<Point> pointsToPearl;
+	
 	//---Enum for Optimize---
 	enum OptStrat{
 		shortenPath, straightToPearl
@@ -95,6 +97,8 @@ public class Pathfinder extends AI {
 
 		checkIfPlayerReachedPearl();
 		
+		//pointsToPearl = bresenhamFlatLine(playerPos.x, playerPos.y, 600, 600);
+		
 		if(pathToGoal.size() > 0 && playerCell == pathToGoal.get(0)) {
 			pathToGoal.remove(0);
 		}
@@ -119,6 +123,69 @@ public class Pathfinder extends AI {
 		return false;
 	}
 	
+	// draw a line from point x1,y1 into x2,y2
+	//inspired by https://www.geeksforgeeks.org/bresenhams-line-generation-algorithm/ 
+	// https://technicalexception.blogspot.com/2013/10/bresenham-line-drawing-algorithm-in-java.html
+	// and https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+	
+	public ArrayList<Point> bresenhamFlatLine(int x1, int y1, int x2, int y2) {
+		System.out.println("Bresenham is running...");
+		ArrayList<Point> pointsOnFlatLine = new ArrayList<Point>();
+		
+		//switch values to keep direction left to right
+		//TD simplify to if x2 < x1
+		if((x1 - x2) > 0 ){
+			bresenhamFlatLine(x2, y2, x1, y1);
+		}
+		
+		//check how line inclines, i.e. which delta is higher
+		if(Math.abs(y2-y1) > Math.abs(x2-x1)) {
+			bresenhamSteepLine(y1, x1, y2, x2);
+		}
+		int x = x1; 
+		int y = y1; 
+		int sum = x2 - x1; 
+		int Dx = 2 * (x2 - x1); 
+		int Dy = Math.abs(2 * (y2 - y1));
+		int prirastokDy = ((y2 - y1) > 0) ? 1 : -1;
+		
+		for (int i = 0; i <= x2 -x1; i++) {
+			pointsOnFlatLine.add(new Point(x,y));
+			x++;
+			sum -= Dy;
+		if (sum < 0) 
+		{
+			y = y + prirastokDy; sum += Dx;
+		}
+	}
+		
+		return pointsOnFlatLine;
+	}
+	
+	public ArrayList<Point> bresenhamSteepLine(int x3, int y3, int x4, int y4) {
+		ArrayList<Point> pointsOnSteepLine = new ArrayList<Point>();
+		
+		if((x3 - x4) > 0 ){
+			bresenhamSteepLine(x4, y4, x3, y3);
+		}
+			int x = x3;
+		  int y = y3;
+		  int Dx = 2 * (x4 - x3);
+		  int sum = x4 - x3;
+		  int Dy = Math.abs(2 * (y4 - y3));
+		  
+		  int prirastokDy = ((y4 - y3) > 0) ? 1 : -1;
+
+		  for (int i = 0; i <= x4 -x3; i++) {
+		   pointsOnSteepLine.add(new Point(x,y));
+		   x++;
+			sum -= Dy;
+		   if (sum < 0) {y = y + prirastokDy; sum += Dx;}
+		  }
+		
+		return pointsOnSteepLine;
+	}
+	 
 	
 	//-----------------A* Methods-----------
 	
@@ -596,8 +663,10 @@ public class Pathfinder extends AI {
 		
 		//---drawing in line to closestPearl, if obstacles in path draw red, else draw green using  new method
 		gfx.setColor(new Color(255,0,0));
-		gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
-		
+		//gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
+		for(int i = 0; i < pointsToPearl.size(); i++) {
+			gfx.drawOval(pointsToPearl.get(i).x, pointsToPearl.get(i).y, 2, 2);
+		}
 	}
 	
 	
