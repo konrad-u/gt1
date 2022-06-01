@@ -99,11 +99,18 @@ public class Pathfinder extends AI {
 		
 		//pointsToPearl = bresenhamFlatLine(playerPos.x, playerPos.y, 600, 600);
 		
+		//lineFromPoints(playerPos, returnClosestPearlCellCenter());
+		
 		if(pathToGoal.size() > 0 && playerCell == pathToGoal.get(0)) {
 			pathToGoal.remove(0);
 		}
 
-		if (playerCell.status == Status.pearl) {
+		if(currAir < 0.5) {
+			Point nextPearlAir = new Point(playerPos.x, 0);
+			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
+			return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
+		}
+		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
 			return seekPearl();
 		} else {
 			//return seekClosestPearlCellCenter();
@@ -118,9 +125,23 @@ public class Pathfinder extends AI {
 
 	public boolean isClearToClosestPearl() {
 		
-	
-		
-		return false;
+		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
+				double slope = (double)(returnClosestPearlCellCenter().y - playerPos.y) / (returnClosestPearlCellCenter().x - playerPos.x);
+				//adjustable resolution factor
+				double resolution = 1;
+				double x = playerPos.x;
+				while (x <= returnClosestPearlCellCenter().x) {
+				    double y = slope * (x - playerPos.x) + playerPos.y;
+				    Point linePoint = new Point ((int) x, (int)y);
+				    //if(isPointAnObstacle(linePoint)) {
+				    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+				    	System.out.println("NOT CLEAR");
+				    	return false;
+				    } 
+				    x += resolution;
+				}
+			System.out.println("CLEAR");
+		return true;
 	}
 	
 	// draw a line from point x1,y1 into x2,y2
@@ -186,6 +207,18 @@ public class Pathfinder extends AI {
 		return pointsOnSteepLine;
 	}
 	 
+	public void lineFromPoints(Point start, Point end) {
+		int a = end.y - start.y;
+		int b = start.x - end.x;
+		int c = a * start.x + b * start.y;
+		
+		if(b < 0) {
+			System.out.println("The line passing through the start and goal is: " + a + "x - " + b + "y = " + c);
+		}
+		else {
+			 System.out.println( "The line passing through the start and goal is: " + a + "x + " + b + "y = " + c);
+		}
+	}
 	
 	//-----------------A* Methods-----------
 	
@@ -313,10 +346,8 @@ public class Pathfinder extends AI {
 		
 		//-----------------------AIR TANK CHECK STUFF ABGABE 3--------------------
 		
-		if(currAir < 0.5) {
-			Point nextPearlAir = new Point(cell.center.x, 0);
-			directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
-		}
+		//------------REMOVED and put right in update to override all else
+		
 		
 		//---------------------------------------------------------------------------------
 		
@@ -469,8 +500,8 @@ public class Pathfinder extends AI {
 			
 			// use findCellsInLineOf Sight? if res low enough, as otherwise may pass edges that wouldn't block the diver....
 			
-			ArrayList<MapCell> ArrToPearl = new ArrayList<MapCell>();
-			Point nextPearlCen = returnClosestPearlCellCenter();
+			//ArrayList<MapCell> ArrToPearl = new ArrayList<MapCell>();
+			//Point nextPearlCen = returnClosestPearlCellCenter();
 			
 			
 		}
@@ -664,8 +695,23 @@ public class Pathfinder extends AI {
 		//---drawing in line to closestPearl, if obstacles in path draw red, else draw green using  new method
 		gfx.setColor(new Color(255,0,0));
 		//gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
-		for(int i = 0; i < pointsToPearl.size(); i++) {
-			gfx.drawOval(pointsToPearl.get(i).x, pointsToPearl.get(i).y, 2, 2);
+		
+		
+		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
+		double slope = (double)(returnClosestPearlCellCenter().y - playerPos.y) / (returnClosestPearlCellCenter().x - playerPos.x);
+		//adjustable resolution factor
+		double resolution = 1;
+		double x = playerPos.x;
+		while (x <= returnClosestPearlCellCenter().x) {
+		    double y = slope * (x - playerPos.x) + playerPos.y;
+		    Point linePoint = new Point ((int) x, (int)y);
+		    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+		    	gfx.setColor(new Color(255,0,0));
+		    } else if(!isPointAnObstacle(linePoint)) {
+		    	gfx.setColor(new Color(0,255,0));
+		    }
+		    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
+		    x += resolution;
 		}
 	}
 	
