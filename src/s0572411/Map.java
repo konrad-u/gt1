@@ -93,6 +93,8 @@ public class Map{
 		return false;
 	}
 	
-	
+	public MapCell.Status getMapCellStatusViaPoint(int wCells, int hCells, Point p) {
+		return PointToMapCell(wCells, hCells, p).status;
+	}
 
 }

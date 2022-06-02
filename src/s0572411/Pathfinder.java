@@ -4,14 +4,10 @@ import java.awt.Color;
 //import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.geom.Line2D;
 import java.awt.geom.Path2D;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 //import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 import lenz.htw.ai4g.ai.AI;
 import lenz.htw.ai4g.ai.DivingAction;
@@ -86,16 +82,14 @@ public class Pathfinder extends AI {
 		
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
-		
-		//float directionToPearl = info.getOrientation();
-		
+
 		updateAboveBelowPoints();
 		
-		//double pointX = playerPos.x + (belowFactor * Math.cos(directionToPearl));
-		//double pointY = playerPos.y - ( belowFactor * Math.sin(directionToPearl));
-		//pointAbove =  new Point((int) pointX, (int)pointY);
+		//float directionToPearl = info.getOrientation();
 
 		checkIfPlayerReachedPearl();
+		
+		updatePlayerCellStatus();
 		
 		//pointsToPearl = bresenhamFlatLine(playerPos.x, playerPos.y, 600, 600);
 		
@@ -110,6 +104,7 @@ public class Pathfinder extends AI {
 			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
 			return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
 		}
+		
 		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
 			return seekPearl();
 		} else {
@@ -120,7 +115,6 @@ public class Pathfinder extends AI {
 	}
 	
 	//----------------W3 Methods-----------
-	
 	
 
 	public boolean isClearToClosestPearl() {
@@ -218,6 +212,17 @@ public class Pathfinder extends AI {
 		else {
 			 System.out.println( "The line passing through the start and goal is: " + a + "x + " + b + "y = " + c);
 		}
+	}
+	
+	public void updatePlayerCellStatus() {
+		playerCell.status = map.getMapCellStatusViaPoint(wCells, hCells, playerPos);
+	}
+
+	//-new method to avoid obstacles always
+	//want to move method from MoveToCell to here, so that I can plug it in as needed
+	
+	public void avoidObstacles() {
+		
 	}
 	
 	//-----------------A* Methods-----------
@@ -344,13 +349,6 @@ public class Pathfinder extends AI {
 
 		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
 		
-		//-----------------------AIR TANK CHECK STUFF ABGABE 3--------------------
-		
-		//------------REMOVED and put right in update to override all else
-		
-		
-		//---------------------------------------------------------------------------------
-		
 		float[] normDir = normalizePointToFloatArray(directionPoint);
 		
 		float[] normAbove = normalizePointToFloatArray(pointAbove);
@@ -358,6 +356,7 @@ public class Pathfinder extends AI {
 		float[] normBelow = normalizePointToFloatArray(pointBelow);
 		
 		if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
+			System.out.println("both aheadPonts in obstacle");
 			float[] bPoints = averageTwoPointsWithWeighing(normBelow, normAbove, 0.5f, 0.5f);
 			float[] normbPointsFlipped = new float[] {
 					-bPoints[0], -bPoints[1]
