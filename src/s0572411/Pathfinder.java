@@ -25,6 +25,7 @@ public class Pathfinder extends AI {
 	int w = info.getScene().getWidth();
 	int h = info.getScene().getHeight();
 	float maxAir = info.getMaxAir();
+	int nrPearlsCollected = 0;
 	
 	//--Own variables: Map---
 	int res = 40;
@@ -42,6 +43,8 @@ public class Pathfinder extends AI {
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
 	float currAir;
+	Point pTL, pTR, pBL, pBR;
+	int pBox = res/2;
 	
 	ArrayList<Point> pointsToPearl;
 	
@@ -85,6 +88,8 @@ public class Pathfinder extends AI {
 
 		updateAboveBelowPoints();
 		
+		updatePlayerBox();
+		
 		//float directionToPearl = info.getOrientation();
 
 		checkIfPlayerReachedPearl();
@@ -99,7 +104,7 @@ public class Pathfinder extends AI {
 			pathToGoal.remove(0);
 		}
 
-		if(currAir < 0.5) {
+		if(currAir < 0.5 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
 			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
 			return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
@@ -124,16 +129,34 @@ public class Pathfinder extends AI {
 				//adjustable resolution factor
 				double resolution = 1;
 				double x = playerPos.x;
-				while (x <= returnClosestPearlCellCenter().x) {
+				if(x <= returnClosestPearlCellCenter().x) {
+					while (x <= returnClosestPearlCellCenter().x) {
 				    double y = slope * (x - playerPos.x) + playerPos.y;
 				    Point linePoint = new Point ((int) x, (int)y);
 				    //if(isPointAnObstacle(linePoint)) {
-				    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-				    	System.out.println("NOT CLEAR");
-				    	return false;
-				    } 
+				    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+				    for(int i = 0; i < obstacles.length; i++) {
+				    	if(obstacles[i].contains(linePoint)) {
+					    	System.out.println("NOT CLEAR");
+					    	return false;
+				    	}
+				    }
 				    x += resolution;
 				}
+				}
+				
+				else if(x >= returnClosestPearlCellCenter().x) {
+					while (x >= returnClosestPearlCellCenter().x) {
+					    double y = slope * (x - playerPos.x) + playerPos.y;
+					    Point linePoint = new Point ((int) x, (int)y);
+					    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+					    	System.out.println("NOT CLEAR");
+					    	return false;
+					    } else if(!isPointAnObstacle(linePoint)) {
+					    }
+					    x -= resolution;
+					}
+				}  
 			System.out.println("CLEAR");
 		return true;
 	}
@@ -218,12 +241,23 @@ public class Pathfinder extends AI {
 		playerCell.status = map.getMapCellStatusViaPoint(wCells, hCells, playerPos);
 	}
 
-	//-new method to avoid obstacles always
-	//want to move method from MoveToCell to here, so that I can plug it in as needed
-	
-	public void avoidObstacles() {
-		
+	public void updatePlayerBox() {
+		pTL = new Point(playerPos.x - pBox, playerPos.y - pBox);
+		pTR = new Point(playerPos.x - pBox, playerPos.y + pBox);
+		pBL = new Point(playerPos.x + pBox, playerPos.y - pBox);
+		pBR = new Point(playerPos.x + pBox, playerPos.y + pBox);
 	}
+	
+	/*
+	public DivingAction returnToSurface() {
+		
+		Point nextPearlAir = new Point(playerPos.x, 0);
+		Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
+		//return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
+		
+		DivingAction surfacePursuit = new DivingAction(maxVel, directionPoint);
+		return surfacePursuit;
+	} */
 	
 	//-----------------A* Methods-----------
 	
@@ -242,6 +276,7 @@ public class Pathfinder extends AI {
 			for (int j = 0; j < hCells; j++) {
 				map.mapGrid[i][j].graphCost = Float.MAX_VALUE;
 				map.mapGrid[i][j].airCost = calculateDistance(playerPos, returnClosestPearlCellCenter());
+				
 				map.mapGrid[i][j].marked = false;
 				}
 			}
@@ -368,7 +403,8 @@ public class Pathfinder extends AI {
 		else if(isPointAnObstacle(pointAbove)) {
 			//System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normAboveFlipped = new float[] {
-					-normAbove[0], -normAbove[1]
+					//trying nonnegative values
+					normAbove[0], normAbove[1]
 			};
 			normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, dirWeight, fleeWeight);
 			//System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
@@ -394,6 +430,20 @@ public class Pathfinder extends AI {
 
 		float directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
 		
+		
+		
+		//------------new simple condition for steering behavior
+		
+		/*
+		if(isPointAnObstacle(pointAbove)) {
+			directionToCellCenter = -(float) Math.atan2(pointBelow.y, pointBelow.x);
+		}
+		else if(isPointAnObstacle(pointBelow)) {
+			directionToCellCenter = -(float) Math.atan2(pointAbove.y, pointAbove.x);
+		}
+		else if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
+			directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
+		}*/
 		//System.out.println(" the final normDir is " + normDir[0] + " , " + normDir[1]);
 		
 		DivingAction pearlPursuit;
@@ -594,6 +644,7 @@ public class Pathfinder extends AI {
 			if (calculateDistance(pearlPoints[i], playerPos) < 5) {
 				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.obstacle;
 				pearlPoints[i] = new Point(99999999, 999999999);
+				nrPearlsCollected++;
 				//new A* 
 				InitializeAStar();
 				return;
@@ -701,17 +752,39 @@ public class Pathfinder extends AI {
 		//adjustable resolution factor
 		double resolution = 1;
 		double x = playerPos.x;
-		while (x <= returnClosestPearlCellCenter().x) {
-		    double y = slope * (x - playerPos.x) + playerPos.y;
-		    Point linePoint = new Point ((int) x, (int)y);
-		    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-		    	gfx.setColor(new Color(255,0,0));
-		    } else if(!isPointAnObstacle(linePoint)) {
-		    	gfx.setColor(new Color(0,255,0));
-		    }
-		    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
-		    x += resolution;
+		//while (x <= returnClosestPearlCellCenter().x) {
+		if(x <= returnClosestPearlCellCenter().x) {
+			while (x < returnClosestPearlCellCenter().x) {
+			    double y = slope * (x - playerPos.x) + playerPos.y;
+			    Point linePoint = new Point ((int) x, (int)y);
+			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+			    	gfx.setColor(new Color(255,0,0));
+			    } else if(!isPointAnObstacle(linePoint)) {
+			    	gfx.setColor(new Color(0,255,0));
+			    }
+			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
+			    x += resolution;
+			}
+		} else if(x >= returnClosestPearlCellCenter().x) {
+			while (x > returnClosestPearlCellCenter().x) {
+			    double y = slope * (x - playerPos.x) + playerPos.y;
+			    Point linePoint = new Point ((int) x, (int)y);
+			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+			    	gfx.setColor(new Color(255,0,0));
+			    } else if(!isPointAnObstacle(linePoint)) {
+			    	gfx.setColor(new Color(0,255,0));
+			    }
+			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
+			    x -= resolution;
+			}
 		}
+		gfx.setColor(new Color(125,125,0));
+		gfx.drawOval(pTL.x, pTL.y, 3, 3);
+		gfx.drawOval(pTR.x, pTR.y, 3, 3);
+		gfx.drawOval(pBL.x, pBL.y, 3, 3);
+		gfx.drawOval(pBR.x, pBR.y, 3, 3);
+		
+		
 	}
 	
 	
