@@ -92,8 +92,6 @@ public class Pathfinder extends AI {
 		updateAboveBelowPoints();
 		
 		updatePlayerBox();
-		
-		//float directionToPearl = info.getOrientation();
 
 		checkIfPlayerReachedPearl();
 		
