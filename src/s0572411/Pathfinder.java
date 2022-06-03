@@ -38,8 +38,9 @@ public class Pathfinder extends AI {
 	MapCell playerCell;
 	Point pointAbove;
 	Point pointBelow;
-	int belowFactor = 20;
-	int aboveFactor = 20;
+	//above below used to be 20
+	int surrPointDistance = 40;
+	float surrPointsAngleFactor = 0.9f;
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
 	float currAir;
@@ -81,7 +82,9 @@ public class Pathfinder extends AI {
 	@Override
 	public PlayerAction update() {
 		currAir = info.getAir() / maxAir;
-		System.out.println(currAir*100 + "% air left." );
+		if(currAir < 0.5) {
+			System.out.println(currAir*100 + "% air left." );
+		}
 		
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
@@ -121,6 +124,47 @@ public class Pathfinder extends AI {
 	
 	//----------------W3 Methods-----------
 	
+	
+	public Point getObsContactPoint(Point surrPoint) {
+		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
+		
+		//first for pointAbove
+		double slope = (double)(surrPoint.y - playerPos.y) / (surrPoint.x - playerPos.x);
+		//adjustable resolution factor
+		double resolution = 1;
+		double x = playerPos.x;
+		if(x <= surrPoint.x) {
+			while (x <= surrPoint.x) {
+		    double y = slope * (x - playerPos.x) + playerPos.y;
+		    Point collPoint = new Point ((int) x, (int)y);
+		    //if(isPointAnObstacle(linePoint)) {
+		    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+		    for(int i = 0; i < obstacles.length; i++) {
+		    	if(obstacles[i].contains(collPoint)) {
+			    	//System.out.println("NOT CLEAR");
+			    	return collPoint;
+		    	}
+		    }
+		    x += resolution;
+		}
+		}
+		
+		else if(x >= surrPoint.x) {
+			while (x >= surrPoint.x) {
+			    double y = slope * (x - playerPos.x) + playerPos.y;
+			    Point collPoint = new Point ((int) x, (int)y);
+			    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+			    for(int i = 0; i < obstacles.length; i++) {
+			    	if(obstacles[i].contains(collPoint)) {
+				    	//System.out.println("NOT CLEAR");
+				    	return collPoint;
+			    	}
+			    }
+			    x -= resolution;
+			}
+		}
+		return null;
+	}
 
 	public boolean isClearToClosestPearl() {
 		
@@ -137,7 +181,7 @@ public class Pathfinder extends AI {
 				    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
 				    for(int i = 0; i < obstacles.length; i++) {
 				    	if(obstacles[i].contains(linePoint)) {
-					    	System.out.println("NOT CLEAR");
+					    	//System.out.println("NOT CLEAR");
 					    	return false;
 				    	}
 				    }
@@ -145,14 +189,17 @@ public class Pathfinder extends AI {
 				}
 				}
 				
-				else if(x >= returnClosestPearlCellCenter().x) {
+				//else if(x >= returnClosestPearlCellCenter().x) {
+				else {
 					while (x >= returnClosestPearlCellCenter().x) {
 					    double y = slope * (x - playerPos.x) + playerPos.y;
 					    Point linePoint = new Point ((int) x, (int)y);
-					    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-					    	System.out.println("NOT CLEAR");
-					    	return false;
-					    } else if(!isPointAnObstacle(linePoint)) {
+					    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+					    for(int i = 0; i < obstacles.length; i++) {
+					    	if(obstacles[i].contains(linePoint)) {
+						    	//System.out.println("NOT CLEAR");
+						    	return false;
+					    	}
 					    }
 					    x -= resolution;
 					}
@@ -401,28 +448,46 @@ public class Pathfinder extends AI {
 		}
 		
 		else if(isPointAnObstacle(pointAbove)) {
+			System.out.println("Above is in an obstacle");
 			//System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normAboveFlipped = new float[] {
-					//trying nonnegative values
-					normAbove[0], normAbove[1]
+					-normAbove[0], -normAbove[1]
 			};
-			normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, dirWeight, fleeWeight);
+			Point collPoint = getObsContactPoint(pointAbove);
+			if(collPoint != null) {
+				float distToCollPoint = calculateDistance(playerPos, collPoint);
+				System.out.println("distToCollPoint is " + distToCollPoint);
+				float proxFactorToPlayer = distToCollPoint/surrPointDistance;
+				System.out.println("dirWeight is " + (1-proxFactorToPlayer) + ", fleeWeight is " + proxFactorToPlayer);
+				normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, (1-proxFactorToPlayer), proxFactorToPlayer);
+			}
+			//------------------old test stuff
 			//System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
-			
 			 //directionPoint = directionPoint + pointFromStartToGoal(pointAbove, playerPos);
 			//pointfromstart to goal must be normalized
 			//weight factor < 1 for 
 			//weightfactor = distance zum Obstacle
+			//-------------------
 		}
 		else if(isPointAnObstacle(pointBelow)) {
+			System.out.println("Below is in an obstacle");
 			//System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
 			float[] normBelowFlipped = new float[] {
 					-normBelow[0], -normBelow[1]
 			};
+			Point collPoint = getObsContactPoint(pointBelow);
+			if(collPoint != null) {
+				float distToCollPoint = calculateDistance(playerPos, collPoint);
+				System.out.println("distToCollPoint is " + distToCollPoint);
+				float proxFactorToPlayer = distToCollPoint/surrPointDistance;
+				System.out.println("dirWeight is " + (1-proxFactorToPlayer) + ", fleeWeight is " + proxFactorToPlayer);
+				normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, (1-proxFactorToPlayer), proxFactorToPlayer);
+			}
+			//normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
+			//----------------old test stuff
 			//System.out.println(" the FLIPPED BELOW point before is " + normBelowFlipped[0] + " , " +  normBelowFlipped[1]);
 			//System.out.println("-------THE ACTUAL FLIPPED BELOW IS " + (normBelowFlipped[0] * -1) + " , " + (normBelowFlipped[1] * -1));
-			normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
-
+			//---------------
 			//System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
 		}
 
@@ -434,17 +499,20 @@ public class Pathfinder extends AI {
 		
 		//------------new simple condition for steering behavior
 		
-		/*
-		if(isPointAnObstacle(pointAbove)) {
-			directionToCellCenter = -(float) Math.atan2(pointBelow.y, pointBelow.x);
-		}
-		else if(isPointAnObstacle(pointBelow)) {
-			directionToCellCenter = -(float) Math.atan2(pointAbove.y, pointAbove.x);
-		}
-		else if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
-			directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
-		}*/
+
+		
+//		if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
+//			directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
+//		}
+//		if(isPointAnObstacle(pointAbove)) {
+//			directionToCellCenter = -(float) Math.atan2(pointBelow.y, pointBelow.x);
+//		}
+//		else if(isPointAnObstacle(pointBelow)) {
+//			directionToCellCenter = -(float) Math.atan2(pointAbove.y, pointAbove.x);
+//		}
 		//System.out.println(" the final normDir is " + normDir[0] + " , " + normDir[1]);
+		
+		
 		
 		DivingAction pearlPursuit;
 		
@@ -458,13 +526,13 @@ public class Pathfinder extends AI {
 	public void updateAboveBelowPoints(){
 		float orientation = info.getOrientation();
 		
-		double pointX = playerPos.x + (aboveFactor * Math.cos(orientation + Math.PI/2  * 0.3));
-		double pointY = playerPos.y - (aboveFactor * Math.sin(orientation + Math.PI/2  * 0.3));
+		double pointX = playerPos.x + (surrPointDistance * Math.cos(orientation + Math.PI/2 * surrPointsAngleFactor));
+		double pointY = playerPos.y - (surrPointDistance * Math.sin(orientation + Math.PI/2 * surrPointsAngleFactor));
 		pointAbove =  new Point((int) pointX, (int)pointY);		
 		
 		//pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
-		pointX = playerPos.x + (belowFactor * Math.cos(orientation - Math.PI/2  * 0.3));
-		pointY = playerPos.y - (belowFactor * Math.sin(orientation - Math.PI/2  * 0.3));
+		pointX = playerPos.x + (surrPointDistance * Math.cos(orientation - Math.PI/2 * surrPointsAngleFactor));
+		pointY = playerPos.y - (surrPointDistance * Math.sin(orientation - Math.PI/2 * surrPointsAngleFactor));
 		pointBelow =  new Point((int) pointX, (int)pointY);
 	}
 	
@@ -684,7 +752,7 @@ public class Pathfinder extends AI {
 	public boolean isPointAnObstacle(Point p) {
 		for(int i = 0; i < obstacles.length; i++) {
 			if(obstacles[i].contains(p)) {
-				System.out.println("one of the points is in an obstacle");
+				//System.out.println("one of the points is in an obstacle");
 				return true;
 			}
 		}
@@ -778,12 +846,21 @@ public class Pathfinder extends AI {
 			    x -= resolution;
 			}
 		}
-		gfx.setColor(new Color(125,125,0));
-		gfx.drawOval(pTL.x, pTL.y, 3, 3);
-		gfx.drawOval(pTR.x, pTR.y, 3, 3);
-		gfx.drawOval(pBL.x, pBL.y, 3, 3);
-		gfx.drawOval(pBR.x, pBR.y, 3, 3);
+//		gfx.setColor(new Color(125,125,0));
+//		gfx.drawOval(pTL.x, pTL.y, 3, 3);
+//		gfx.drawOval(pTR.x, pTR.y, 3, 3);
+//		gfx.drawOval(pBL.x, pBL.y, 3, 3);
+//		gfx.drawOval(pBR.x, pBR.y, 3, 3);
 		
+		gfx.setColor(new Color(255,255,0));
+		if(getObsContactPoint(pointAbove) != null) {
+			Point p = getObsContactPoint(pointAbove);
+			gfx.drawOval(p.x,  p.y,  10, 10);
+		}
+		if(getObsContactPoint(pointBelow) != null) {
+			Point p = getObsContactPoint(pointBelow);
+			gfx.drawOval(p.x,  p.y,  10, 10);
+		}
 		
 	}
 	
