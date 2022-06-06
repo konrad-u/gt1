@@ -26,6 +26,7 @@ public class Pathfinder extends AI {
 	int h = info.getScene().getHeight();
 	float maxAir = info.getMaxAir();
 	int nrPearlsCollected = 0;
+	float maxAcc = info.getMaxAcceleration();
 	
 	//--Own variables: Map---
 	int res = 40;
@@ -48,6 +49,22 @@ public class Pathfinder extends AI {
 	int pBox = res/2;
 	
 	ArrayList<Point> pointsToPearl;
+	
+	//--------------new vars from simpleSeekFlee class, for vector based steering behavior
+	
+	public Vector playerVec = new Vector();
+	public int circleDiv = 10;
+	public Vector[] circle = new Vector[circleDiv];
+	public int circleRadius = 30;
+	public int circleContacts = 0;
+	public Vector circleVectorSum = new Vector();
+	public boolean circleInObstacle = false;
+	public float steerSmooth = 0.4f;
+	
+
+	Vector seekV;
+	Vector fleeV;
+	Vector currentGoal;
 	
 	//---Enum for Optimize---
 	enum OptStrat{
@@ -97,9 +114,11 @@ public class Pathfinder extends AI {
 		
 		updatePlayerCellStatus();
 		
-		//pointsToPearl = bresenhamFlatLine(playerPos.x, playerPos.y, 600, 600);
+		//----------new methods from simple steer class
 		
-		//lineFromPoints(playerPos, returnClosestPearlCellCenter());
+		updateCircle();
+		updatePlayerVec();
+		steerSmooth = (float)(circleContacts+1)/(circleDiv);
 		
 		if(pathToGoal.size() > 0 && playerCell == pathToGoal.get(0)) {
 			pathToGoal.remove(0);
@@ -107,6 +126,7 @@ public class Pathfinder extends AI {
 
 		if(currAir < 0.5 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
+			currentGoal = new Vector(nextPearlAir);
 			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
 			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
 			return avoidObstacles(da);
@@ -118,29 +138,70 @@ public class Pathfinder extends AI {
 		} else {
 			//return seekClosestPearlCellCenter();
 			DivingAction da = MoveToCell(pathToGoal.get(0));
+			currentGoal = new Vector(pathToGoal.get(0).center);
 			return avoidObstacles(da);
 		}
 
 	}
 	
+	//---------------------methods from simpleSeekFlee class for vector based steering behavior
+	public void updateCircle() {
+		circleVectorSum = new Vector(playerPos);
+		int circleHits = 1;
+		circleInObstacle = false;
+		for(int i = 0; i < circle.length; i++) {
+			//int angle = 360/circleDiv;
+			double angle = Math.toRadians((double)i/circle.length) * (double) 360;
+			circle[i] = new Vector ((Math.cos(angle)* circleRadius) + playerPos.x, (Math.sin(angle) * circleRadius) + playerPos.y);
+
+			if(circle[i	] != null && circle[i].isVectorAnObstacle(obstacles, circle[i])) {
+				circleInObstacle = true;
+				circleVectorSum = circleVectorSum.addVectors(circle[i], circleVectorSum);
+				circleHits++;
+				System.out.println("-------------circleSumCoords are: " + circleVectorSum.x + " , " + circleVectorSum.y);
+			}
+		}
+		circleContacts = circleHits-1;
+		circleVectorSum = circleVectorSum.divideVector(circleVectorSum, (float)circleHits);
+	}
+	
+	public void updatePlayerVec() {
+		playerVec.x = info.getX();
+		playerVec.y = info.getY();
+	}
 	//----------------W3 Methods-----------
 	
 	public DivingAction avoidObstacles(DivingAction currentAction) {
 		
-		// idea: get current direction point/vector normalized from direction
-		// get current velocity, which is generally max velocity
-		// if pointAbove is in an obstacle, we add a steering behavior to the pointBelow
-		// and vice versa
+		// use currentAction to get currentDirection
+		// based on currentDirection, make a new vector representing it?
+		// then use this vector in recalculating a direction under consideration of obstacles
 		
 		
-		if (isPointAnObstacle(pointAbove)) {
-			System.out.println("avoidAbove");
-			float currVel = info.getVelocity();
-			float currDir = info.getOrientation();
-		}
-		if (isPointAnObstacle(pointBelow)) {
-			System.out.println("avoidBelow");
-		}
+		
+//		playerVec = new Vector(playerPos);
+//		
+//		if(currAir > 0.5) {
+//			 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
+//				seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
+//			}
+//			else {
+//				 seekV = new Vector(playerVec.x, 0);
+//				 // Why must i subtract here???
+//				 seekV = seekV.subtractFromFirst(seekV, playerVec);
+//				 seekV = seekV.normalize(seekV);
+//				 seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
+//				 
+//			}
+//			if(circleInObstacle) {
+//				fleeV = new Vector();
+//				fleeV = fleeV.fleeVector(playerVec, circleVectorSum);
+//				fleeV = fleeV.normalize(	fleeV);
+//				fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
+//				seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
+//			}
+//			float dir = -(float) Math.atan2(seekV.y,seekV.x);
+//			return new DivingAction(seekV.vectorLength(seekV), dir);
 		
 		return currentAction;
 	}
@@ -667,6 +728,8 @@ public class Pathfinder extends AI {
 		Point directionPoint = pointFromStartToGoal(playerPos, closestPearl);
 
 		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
+		
+		currentGoal = new Vector(directionPoint);
 
 		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
 
@@ -771,6 +834,19 @@ public class Pathfinder extends AI {
 			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
 			    x -= resolution;
 			}
+			for(int i = 0; i < circle.length; i++) {
+				if(circle[i	] != null && circle[i].x > 0 && circle[i].y > 0) {
+					gfx.setColor(new Color(0,255,255));
+					if(circle[i].isVectorAnObstacle(obstacles, circle[i])) {
+						gfx.setColor(new Color(255,0,0));
+						gfx.drawLine((int)circle[i].x, (int)circle[i].y, (int)playerPos.x, (int)playerPos.y);
+					}
+					//gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
+				}
+			}
+			gfx.setColor(new Color(0,0,0));
+			gfx.drawOval((int)playerVec.x, (int)playerVec.y, 10, 10);
+			
 		}
 //		gfx.setColor(new Color(125,125,0));
 //		gfx.drawOval(pTL.x, pTL.y, 3, 3);

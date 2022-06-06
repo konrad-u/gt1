@@ -113,23 +113,17 @@ public class simpleSeekFlee extends AI {
 			 seekV = new Vector(playerPos.x, 0);
 			 // Why must i subtract here???
 			 seekV = seekV.subtractFromFirst(seekV, playerPos);
-			 //System.out.println("new sseekV coords " + seekV.x + " ," + seekV.y);
 			 seekV = seekV.normalize(seekV);
 			 seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 			 
 		}
 		if(circleInObstacle) {
-			System.out.println("---------circle in obstacle------");
 			fleeV = new Vector();
 			fleeV = fleeV.fleeVector(playerPos, circleVectorSum);
 			fleeV = fleeV.normalize(	fleeV);
 			fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
-			//seekV = seekV.addVectors(seekV, fleeV);
-			//seekV = seekV.divideVector(seekV, 2);
 			seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
 		}
-
-		System.out.println(" x is " + seekV.x + " , y is " + seekV.y);
 		float dir = -(float) Math.atan2(seekV.y,seekV.x);
 		return new DivingAction(seekV.vectorLength(seekV), dir);
 	}
