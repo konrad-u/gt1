@@ -1,6 +1,8 @@
 package s0572411;
 
 import java.awt.Point;
+import java.awt.geom.Path2D;
+
 import lenz.htw.ai4g.ai.AI;
 import lenz.htw.ai4g.ai.DivingAction;
 import lenz.htw.ai4g.ai.Info;
@@ -10,6 +12,10 @@ import s0572411.MapCell.Status;
 public class Vector {
 
 	public double x, y;
+	
+	public Vector() {
+		
+	}
 	
 	public Vector(double x, double y) {
 		this.x = x;
@@ -30,13 +36,18 @@ public class Vector {
 		new Vector(p.x, p.y);
 	}
 
+	public Vector(Vector v) {
+		x = v.x;
+		y = v.y;
+	}
+	
 //----------------type casting
 	
 	public Point vectorToPoint(Vector v) {
 		return new Point((int)v.x, (int)v.y);
 	}
 	
-	public DivingAction DivingAction(Vector start, Vector end, float acc) {
+	public DivingAction vectorToDivingAction(Vector start, Vector end, float acc) {
 		
 		return new DivingAction(normDirectionAToB(start, end), acc);
 	}
@@ -85,5 +96,41 @@ public class Vector {
 	public float distanceBetweenVectors(Vector a, Vector b) {
 		return vectorLength(subtractFromFirst(a,b));
 		
+	}
+	
+	public Vector seekVector(Vector pos, Vector goal) {
+		return pos.subtractFromFirst(goal,  pos);
+	}
+	
+	public Vector fleeVector(Vector pos, Vector goal) {
+		return pos.subtractFromFirst(pos, goal);
+	}
+	
+	public Vector multiplyVector(Vector v, float factor) {
+		return new Vector (v.x * factor, v.y * factor);
+	}
+	
+	public Vector divideVector(Vector v, float factor) {
+		return new Vector(v.x/factor, v.y/factor);
+	}
+	
+	public Vector clipLength(Vector v, float min, float max) {
+		if(v.vectorLength(v) < min) {
+			return v.multiplyVector(v.normalize(v), min);
+		}
+		else if(v.vectorLength(v) > max) {
+			return v.multiplyVector(v.normalize(v), max);
+		}
+		else return v;
+	}
+	
+	public boolean isVectorAnObstacle(Path2D[] obstacles, Vector v) {
+		for(int i = 0; i < obstacles.length; i++) {
+			if(obstacles[i].contains(v.vectorToPoint(v))) {
+				System.out.println("one of the points is in an obstacle");
+				return true;
+			}
+		}
+		return false;
 	}
 }

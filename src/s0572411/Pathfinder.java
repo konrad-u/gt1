@@ -108,20 +108,42 @@ public class Pathfinder extends AI {
 		if(currAir < 0.5 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
 			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
-			return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
+			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
+			return avoidObstacles(da);
 		}
 		
 		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
-			return seekPearl();
+			DivingAction da = seekPearl();
+			return avoidObstacles(da);
 		} else {
 			//return seekClosestPearlCellCenter();
-			return MoveToCell(pathToGoal.get(0));
+			DivingAction da = MoveToCell(pathToGoal.get(0));
+			return avoidObstacles(da);
 		}
 
 	}
 	
 	//----------------W3 Methods-----------
 	
+	public DivingAction avoidObstacles(DivingAction currentAction) {
+		
+		// idea: get current direction point/vector normalized from direction
+		// get current velocity, which is generally max velocity
+		// if pointAbove is in an obstacle, we add a steering behavior to the pointBelow
+		// and vice versa
+		
+		
+		if (isPointAnObstacle(pointAbove)) {
+			System.out.println("avoidAbove");
+			float currVel = info.getVelocity();
+			float currDir = info.getOrientation();
+		}
+		if (isPointAnObstacle(pointBelow)) {
+			System.out.println("avoidBelow");
+		}
+		
+		return currentAction;
+	}
 	
 	public Point getObsContactPoint(Point surrPoint) {
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
@@ -205,105 +227,11 @@ public class Pathfinder extends AI {
 			System.out.println("CLEAR");
 		return true;
 	}
-	
-	// draw a line from point x1,y1 into x2,y2
-	//inspired by https://www.geeksforgeeks.org/bresenhams-line-generation-algorithm/ 
-	// https://technicalexception.blogspot.com/2013/10/bresenham-line-drawing-algorithm-in-java.html
-	// and https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-	
-	public ArrayList<Point> bresenhamFlatLine(int x1, int y1, int x2, int y2) {
-		System.out.println("Bresenham is running...");
-		ArrayList<Point> pointsOnFlatLine = new ArrayList<Point>();
-		
-		//switch values to keep direction left to right
-		//TD simplify to if x2 < x1
-		if((x1 - x2) > 0 ){
-			bresenhamFlatLine(x2, y2, x1, y1);
-		}
-		
-		//check how line inclines, i.e. which delta is higher
-		if(Math.abs(y2-y1) > Math.abs(x2-x1)) {
-			bresenhamSteepLine(y1, x1, y2, x2);
-		}
-		int x = x1; 
-		int y = y1; 
-		int sum = x2 - x1; 
-		int Dx = 2 * (x2 - x1); 
-		int Dy = Math.abs(2 * (y2 - y1));
-		int prirastokDy = ((y2 - y1) > 0) ? 1 : -1;
-		
-		for (int i = 0; i <= x2 -x1; i++) {
-			pointsOnFlatLine.add(new Point(x,y));
-			x++;
-			sum -= Dy;
-		if (sum < 0) 
-		{
-			y = y + prirastokDy; sum += Dx;
-		}
-	}
-		
-		return pointsOnFlatLine;
-	}
-	
-	public ArrayList<Point> bresenhamSteepLine(int x3, int y3, int x4, int y4) {
-		ArrayList<Point> pointsOnSteepLine = new ArrayList<Point>();
-		
-		if((x3 - x4) > 0 ){
-			bresenhamSteepLine(x4, y4, x3, y3);
-		}
-			int x = x3;
-		  int y = y3;
-		  int Dx = 2 * (x4 - x3);
-		  int sum = x4 - x3;
-		  int Dy = Math.abs(2 * (y4 - y3));
-		  
-		  int prirastokDy = ((y4 - y3) > 0) ? 1 : -1;
 
-		  for (int i = 0; i <= x4 -x3; i++) {
-		   pointsOnSteepLine.add(new Point(x,y));
-		   x++;
-			sum -= Dy;
-		   if (sum < 0) {y = y + prirastokDy; sum += Dx;}
-		  }
-		
-		return pointsOnSteepLine;
-	}
-	 
-	public void lineFromPoints(Point start, Point end) {
-		int a = end.y - start.y;
-		int b = start.x - end.x;
-		int c = a * start.x + b * start.y;
-		
-		if(b < 0) {
-			System.out.println("The line passing through the start and goal is: " + a + "x - " + b + "y = " + c);
-		}
-		else {
-			 System.out.println( "The line passing through the start and goal is: " + a + "x + " + b + "y = " + c);
-		}
-	}
-	
 	public void updatePlayerCellStatus() {
 		playerCell.status = map.getMapCellStatusViaPoint(wCells, hCells, playerPos);
 	}
 
-	public void updatePlayerBox() {
-		pTL = new Point(playerPos.x - pBox, playerPos.y - pBox);
-		pTR = new Point(playerPos.x - pBox, playerPos.y + pBox);
-		pBL = new Point(playerPos.x + pBox, playerPos.y - pBox);
-		pBR = new Point(playerPos.x + pBox, playerPos.y + pBox);
-	}
-	
-	/*
-	public DivingAction returnToSurface() {
-		
-		Point nextPearlAir = new Point(playerPos.x, 0);
-		Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
-		//return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
-		
-		DivingAction surfacePursuit = new DivingAction(maxVel, directionPoint);
-		return surfacePursuit;
-	} */
-	
 	//-----------------A* Methods-----------
 	
 	int debugCount = 0;
@@ -861,6 +789,102 @@ public class Pathfinder extends AI {
 		}
 		
 	}
+		
+	//------------------- unused methods----------------
 	
-	
+	// draw a line from point x1,y1 into x2,y2
+		//inspired by https://www.geeksforgeeks.org/bresenhams-line-generation-algorithm/ 
+		// https://technicalexception.blogspot.com/2013/10/bresenham-line-drawing-algorithm-in-java.html
+		// and https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+		
+		public ArrayList<Point> bresenhamFlatLine(int x1, int y1, int x2, int y2) {
+			System.out.println("Bresenham is running...");
+			ArrayList<Point> pointsOnFlatLine = new ArrayList<Point>();
+			
+			//switch values to keep direction left to right
+			//TD simplify to if x2 < x1
+			if((x1 - x2) > 0 ){
+				bresenhamFlatLine(x2, y2, x1, y1);
+			}
+			
+			//check how line inclines, i.e. which delta is higher
+			if(Math.abs(y2-y1) > Math.abs(x2-x1)) {
+				bresenhamSteepLine(y1, x1, y2, x2);
+			}
+			int x = x1; 
+			int y = y1; 
+			int sum = x2 - x1; 
+			int Dx = 2 * (x2 - x1); 
+			int Dy = Math.abs(2 * (y2 - y1));
+			int prirastokDy = ((y2 - y1) > 0) ? 1 : -1;
+			
+			for (int i = 0; i <= x2 -x1; i++) {
+				pointsOnFlatLine.add(new Point(x,y));
+				x++;
+				sum -= Dy;
+			if (sum < 0) 
+			{
+				y = y + prirastokDy; sum += Dx;
+			}
+		}
+			
+			return pointsOnFlatLine;
+		}
+		
+		public ArrayList<Point> bresenhamSteepLine(int x3, int y3, int x4, int y4) {
+			ArrayList<Point> pointsOnSteepLine = new ArrayList<Point>();
+			
+			if((x3 - x4) > 0 ){
+				bresenhamSteepLine(x4, y4, x3, y3);
+			}
+				int x = x3;
+			  int y = y3;
+			  int Dx = 2 * (x4 - x3);
+			  int sum = x4 - x3;
+			  int Dy = Math.abs(2 * (y4 - y3));
+			  
+			  int prirastokDy = ((y4 - y3) > 0) ? 1 : -1;
+
+			  for (int i = 0; i <= x4 -x3; i++) {
+			   pointsOnSteepLine.add(new Point(x,y));
+			   x++;
+				sum -= Dy;
+			   if (sum < 0) {y = y + prirastokDy; sum += Dx;}
+			  }
+			
+			return pointsOnSteepLine;
+		}
+		 
+		public void lineFromPoints(Point start, Point end) {
+			int a = end.y - start.y;
+			int b = start.x - end.x;
+			int c = a * start.x + b * start.y;
+			
+			if(b < 0) {
+				System.out.println("The line passing through the start and goal is: " + a + "x - " + b + "y = " + c);
+			}
+			else {
+				 System.out.println( "The line passing through the start and goal is: " + a + "x + " + b + "y = " + c);
+			}
+		}
+
+		public void updatePlayerBox() {
+			pTL = new Point(playerPos.x - pBox, playerPos.y - pBox);
+			pTR = new Point(playerPos.x - pBox, playerPos.y + pBox);
+			pBL = new Point(playerPos.x + pBox, playerPos.y - pBox);
+			pBR = new Point(playerPos.x + pBox, playerPos.y + pBox);
+		}
+
+
+		/*
+		public DivingAction returnToSurface() {
+			
+			Point nextPearlAir = new Point(playerPos.x, 0);
+			Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
+			//return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
+			
+			DivingAction surfacePursuit = new DivingAction(maxVel, directionPoint);
+			return surfacePursuit;
+		} */
+
 }
