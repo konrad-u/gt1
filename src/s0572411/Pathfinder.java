@@ -27,6 +27,7 @@ public class Pathfinder extends AI {
 	float maxAir = info.getMaxAir();
 	int nrPearlsCollected = 0;
 	float maxAcc = info.getMaxAcceleration();
+	float validProximityToPearl = 10;
 	
 	//--Own variables: Map---
 	int res = 40;
@@ -54,9 +55,9 @@ public class Pathfinder extends AI {
 	//--------------new vars from simpleSeekFlee class, for vector based steering behavior
 	
 	public Vector playerVec = new Vector();
-	public int circleDiv = 8;
+	public int circleDiv = 15;
 	public Vector[] circle = new Vector[circleDiv];
-	public int circleRadius = 18;
+	public int circleRadius = 25;
 	public int circleContacts = 0;
 	public Vector circleVectorSum = new Vector();
 	public boolean circleInObstacle = false;
@@ -270,14 +271,15 @@ public class Pathfinder extends AI {
 
 	//-------THIS ONES A TROUBLEMAKER
 	public boolean isClearToClosestPearl() {
+		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
 		
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
-				double slope = (double)(returnClosestPearlCellCenter().y - playerPos.y) / (returnClosestPearlCellCenter().x - playerPos.x);
+				double slope = (double)(closestPearl.y - playerPos.y) / (closestPearl.x - playerPos.x);
 				//adjustable resolution factor
 				double resolution = 1;
 				double x = playerPos.x;
-				if(x <= returnClosestPearlCellCenter().x) {
-					while (x <= returnClosestPearlCellCenter().x) {
+				if(x <= closestPearl.x) {
+					while (x <= closestPearl.x) {
 				    double y = slope * (x - playerPos.x) + playerPos.y;
 				    Point linePoint = new Point ((int) x, (int)y);
 				    //if(isPointAnObstacle(linePoint)) {
@@ -296,7 +298,7 @@ public class Pathfinder extends AI {
 				
 				//else if(x >= returnClosestPearlCellCenter().x) {
 				else {
-					while (x >= returnClosestPearlCellCenter().x) {
+					while (x >= closestPearl.x) {
 					    double y = slope * (x - playerPos.x) + playerPos.y;
 					    Point linePoint = new Point ((int) x, (int)y);
 					    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
@@ -719,7 +721,7 @@ public class Pathfinder extends AI {
 
 	public void checkIfPlayerReachedPearl() {
 		for (int i = 0; i < pearlPoints.length; i++) {
-			if (calculateDistance(pearlPoints[i], playerPos) < 5) {
+			if (calculateDistance(pearlPoints[i], playerPos) < validProximityToPearl) {
 				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.obstacle;
 				pearlPoints[i] = new Point(99999999, 999999999);
 				nrPearlsCollected++;
@@ -738,6 +740,7 @@ public class Pathfinder extends AI {
 			float currentPearlDistance = calculateDistance(pearls[i], player);
 			if (currentPearlDistance < closestPearlDistance) {
 				closestPearl = pearls[i];
+				//add new condition that considers pearl depth
 				closestPearlDistance = currentPearlDistance;
 			}
 		}
@@ -826,15 +829,16 @@ public class Pathfinder extends AI {
 		gfx.setColor(new Color(255,0,0));
 		//gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
 		
+		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
 		
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
-		double slope = (double)(returnClosestPearlCellCenter().y - playerPos.y) / (returnClosestPearlCellCenter().x - playerPos.x);
+		double slope = (double)(closestPearl.y - playerPos.y) / (closestPearl.x - playerPos.x);
 		//adjustable resolution factor
 		double resolution = 1;
 		double x = playerPos.x;
 		//while (x <= returnClosestPearlCellCenter().x) {
-		if(x <= returnClosestPearlCellCenter().x) {
-			while (x < returnClosestPearlCellCenter().x) {
+		if(x <= closestPearl.x) {
+			while (x < closestPearl.x) {
 			    double y = slope * (x - playerPos.x) + playerPos.y;
 			    Point linePoint = new Point ((int) x, (int)y);
 			    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
@@ -846,8 +850,8 @@ public class Pathfinder extends AI {
 			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
 			    x += resolution;
 			}
-		} else if(x >= returnClosestPearlCellCenter().x) {
-			while (x > returnClosestPearlCellCenter().x) {
+		} else if(x >= closestPearl.x) {
+			while (x > closestPearl.x) {
 			    double y = slope * (x - playerPos.x) + playerPos.y;
 			    Point linePoint = new Point ((int) x, (int)y);
 			    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
