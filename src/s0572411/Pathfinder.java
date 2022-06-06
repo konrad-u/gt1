@@ -56,7 +56,7 @@ public class Pathfinder extends AI {
 	public Vector playerVec = new Vector();
 	public int circleDiv = 8;
 	public Vector[] circle = new Vector[circleDiv];
-	public int circleRadius = 15;
+	public int circleRadius = 18;
 	public int circleContacts = 0;
 	public Vector circleVectorSum = new Vector();
 	public boolean circleInObstacle = false;
@@ -101,7 +101,7 @@ public class Pathfinder extends AI {
 	@Override
 	public PlayerAction update() {
 		currAir = info.getAir() / maxAir;
-		if(currAir < 0.5) {
+		if(currAir < 0.55) {
 			System.out.println(currAir*100 + "% air left." );
 		}
 		
@@ -143,8 +143,8 @@ public class Pathfinder extends AI {
 			return avoidObstacles(da);
 		}
 		//removing isCleartoclosesttpear to see if we can get a decent steering without shortcuts
-		//if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
-		if (playerCell.status == Status.pearl) {
+		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
+		//if (playerCell.status == Status.pearl) {
 			DivingAction da = seekPearl();
 			return avoidObstacles(da);
 		} else {
@@ -194,7 +194,7 @@ public class Pathfinder extends AI {
 	public DivingAction avoidObstacles(DivingAction currentAction) {
 		
 		if(playerCell.status != Status.pearl) {
-			if(currAir > 0.5) {
+			if(currAir > 0.55) {
 				 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
 					seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 				}
@@ -282,12 +282,13 @@ public class Pathfinder extends AI {
 				    Point linePoint = new Point ((int) x, (int)y);
 				    //if(isPointAnObstacle(linePoint)) {
 				    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+
+			    	//if(obstacles[i].contains(linePoint)) {
+			    	if(isPointAnObstacle(linePoint)){
+				    	//System.out.println("NOT CLEAR");
+				    	return false;
+			    	}
 				    for(int i = 0; i < obstacles.length; i++) {
-				    	//if(obstacles[i].contains(linePoint)) {
-				    	if(isPointAnObstacle(linePoint)){
-					    	//System.out.println("NOT CLEAR");
-					    	return false;
-				    	}
 				    }
 				    x += resolution;
 				}
@@ -299,12 +300,9 @@ public class Pathfinder extends AI {
 					    double y = slope * (x - playerPos.x) + playerPos.y;
 					    Point linePoint = new Point ((int) x, (int)y);
 					    //if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-					    for(int i = 0; i < obstacles.length; i++) {
-					    	//if(obstacles[i].contains(linePoint)) {
-					    	if(isPointAnObstacle(linePoint)){
-						    	//System.out.println("NOT CLEAR");
-						    	return false;
-					    	}
+				    	if(isPointAnObstacle(linePoint)){
+					    	//System.out.println("NOT CLEAR");
+					    	return false;
 					    }
 					    x -= resolution;
 					}
