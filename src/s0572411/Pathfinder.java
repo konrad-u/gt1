@@ -130,7 +130,7 @@ public class Pathfinder extends AI {
 			pathToGoal.remove(0);
 		}
 
-		if(currAir < 0.1 && nrPearlsCollected < 9) {
+		if(currAir < 0.45 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
 			currentGoal = new Vector(nextPearlAir.x, nextPearlAir.y);
 			//System.out.println("The currentGoal coords are BEFORE: " + currentGoal.x + " ," + currentGoal.y);	
@@ -143,8 +143,8 @@ public class Pathfinder extends AI {
 			return avoidObstacles(da);
 		}
 		//removing isCleartoclosesttpear to see if we can get a decent steering without shortcuts
-		//if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
-		if (playerCell.status == Status.pearl) {
+		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
+		//if (playerCell.status == Status.pearl) {
 			DivingAction da = seekPearl();
 			return avoidObstacles(da);
 		} else {
@@ -158,7 +158,7 @@ public class Pathfinder extends AI {
 	
 	//---------------------methods from simpleSeekFlee class for vector based steering behavior
 	public void updateCircle() {
-		circleVectorSum = new Vector(playerPos);
+		circleVectorSum = new Vector(playerPos.x,playerPos.y);
 		int circleHits = 1;
 		circleInObstacle = false;
 		for(int i = 0; i < circle.length; i++) {
@@ -221,7 +221,7 @@ public class Pathfinder extends AI {
 					fleeV = fleeV.normalize(	fleeV);
 					fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
 					//trying a flip here
-					fleeV = fleeV.multiplyVector(fleeV, -1);
+					//fleeV = fleeV.multiplyVector(fleeV, -1);
 					seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
 				}
 				float dir = -(float) Math.atan2(seekV.y,seekV.x);
@@ -841,48 +841,47 @@ public class Pathfinder extends AI {
 		double resolution = 1;
 		double x = playerPos.x;
 		//while (x <= returnClosestPearlCellCenter().x) {
-		if(x <= returnClosestPearlCellCenter().x) {
-			while (x < returnClosestPearlCellCenter().x) {
-			    double y = slope * (x - playerPos.x) + playerPos.y;
-			    Point linePoint = new Point ((int) x, (int)y);
-			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-			    	gfx.setColor(new Color(255,0,0));
-			    } else if(!isPointAnObstacle(linePoint)) {
-			    	gfx.setColor(new Color(0,255,0));
-			    }
-			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
-			    x += resolution;
-			}
-		} else if(x >= returnClosestPearlCellCenter().x) {
-			while (x > returnClosestPearlCellCenter().x) {
-			    double y = slope * (x - playerPos.x) + playerPos.y;
-			    Point linePoint = new Point ((int) x, (int)y);
-			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
-			    	gfx.setColor(new Color(255,0,0));
-			    } else if(!isPointAnObstacle(linePoint)) {
-			    	gfx.setColor(new Color(0,255,0));
-			    }
-			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
-			    x -= resolution;
-			}
-			for(int i = 0; i < circle.length; i++) {
-				if(circle[i	] != null && circle[i].x > 0 && circle[i].y > 0) {
-					gfx.setColor(new Color(0,255,255));
-					//if(circle[i].isVectorAnObstacle(obstacles, circle[i])) {
-						gfx.setColor(new Color(255,0,0));
-						gfx.drawLine((int)circle[i].x, (int)circle[i].y, (int)playerPos.x, (int)playerPos.y);
-					//}
-					//gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
+//		if(x <= returnClosestPearlCellCenter().x) {
+//			while (x < returnClosestPearlCellCenter().x) {
+//			    double y = slope * (x - playerPos.x) + playerPos.y;
+//			    Point linePoint = new Point ((int) x, (int)y);
+//			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+//			    	gfx.setColor(new Color(255,0,0));
+//			    } else if(!isPointAnObstacle(linePoint)) {
+//			    	gfx.setColor(new Color(0,255,0));
+//			    }
+//			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
+//			    x += resolution;
+//			}
+//		} else if(x >= returnClosestPearlCellCenter().x) {
+//			while (x > returnClosestPearlCellCenter().x) {
+//			    double y = slope * (x - playerPos.x) + playerPos.y;
+//			    Point linePoint = new Point ((int) x, (int)y);
+//			    if(map.PointToMapCell(wCells, hCells, linePoint).status == Status.obstacle) {
+//			    	gfx.setColor(new Color(255,0,0));
+//			    } else if(!isPointAnObstacle(linePoint)) {
+//			    	gfx.setColor(new Color(0,255,0));
+//			    }
+//			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
+//			    x -= resolution;
+//			}
+//		}
+
+		for(int i = 0; i < circle.length; i++) {
+			if(circle[i	] != null && circle[i].x > 0 && circle[i].y > 0) {
+				gfx.setColor(new Color(0,255,255));
+				if(circle[i].isVectorAnObstacle(obstacles, circle[i])) {
+					gfx.setColor(new Color(255,0,0));
+					gfx.drawLine((int)circle[i].x, (int)circle[i].y, (int)playerPos.x, (int)playerPos.y);
 				}
+				//gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
 			}
-			gfx.setColor(new Color(125,255,125));
-			gfx.drawOval((int)playerVec.x, (int)playerVec.y, 10, 10);
-			gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 10, 10);
-			gfx.drawLine((int)playerVec.x, (int)playerVec.y, (int)currentGoal.x, (int)currentGoal.y);
-			
-			
-			
 		}
+		gfx.setColor(new Color(125,255,125));
+		gfx.drawOval((int)playerVec.x, (int)playerVec.y, 10, 10);
+		gfx.setColor(new Color(255,165,0));
+		gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 15, 15);
+		gfx.drawLine((int)playerVec.x, (int)playerVec.y, (int)currentGoal.x, (int)currentGoal.y);
 //		gfx.setColor(new Color(125,125,0));
 //		gfx.drawOval(pTL.x, pTL.y, 3, 3);
 //		gfx.drawOval(pTR.x, pTR.y, 3, 3);
