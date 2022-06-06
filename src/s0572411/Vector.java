@@ -37,8 +37,8 @@ public class Vector {
 	}
 
 	public Vector(Vector v) {
-		x = v.x;
-		y = v.y;
+		this.x = v.x;
+		this.y = v.y;
 	}
 	
 //----------------type casting
@@ -78,8 +78,8 @@ public class Vector {
 	
 	public Vector normalize(Vector v) {
 		return new Vector(
-				v.x/Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)), 
-				v.y/Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2)));
+				v.x/Math.sqrt((float)Math.pow(x, 2) + Math.pow(y, 2)), 
+				v.y/Math.sqrt((float)Math.pow(x, 2) + Math.pow(y, 2)));
 	}
 
 	public float normDirectionAToB(Vector a, Vector b) {

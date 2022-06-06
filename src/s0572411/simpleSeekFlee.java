@@ -64,6 +64,12 @@ public class simpleSeekFlee extends AI {
 		public int circleRadius = 30;
 		public Vector circleVectorSum = new Vector();
 		public boolean circleInObstacle = false;
+		public float steerSmooth = 0.4f;
+		
+
+		Vector seekV;
+		Vector fleeV;
+		
 	
 	public simpleSeekFlee(Info info) {
 		super(info);
@@ -92,50 +98,38 @@ public class simpleSeekFlee extends AI {
 		updateAboveBelowPoints();
 		updateCircle();
 		closestPearl = new Vector(pearlPoints[4].x, pearlPoints[4].y);
+		System.out.println(" divers coordinates are " + playerPos.x + " ," + playerPos.y);
 		return steerToGoal();
 	}
 
 	public DivingAction steerToGoal() {
-		
-		Vector seekV;
-		if(currAir > 0.5) {
+		if(currAir > 0.7) {
 		 seekV = playerPos.normalize(playerPos.seekVector(playerPos, closestPearl));
-		 System.out.println("seekV magnitude is before: " + seekV.vectorLength(seekV));
-		 System.out.println("maxAcc is " + maxAcc);
-			seekV = seekV.clipLength(seekV, 0, maxAcc);
-			 System.out.println("seekV magnitude is after: " + seekV.vectorLength(seekV));
+			seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 		}
 		else {
-			 seekV = playerPos.normalize(playerPos.fleeVector(playerPos, closestPearl));
-			 System.out.println("seekV magnitude is before: " + seekV.vectorLength(seekV));
-				seekV = seekV.clipLength(seekV, 0, maxAcc);
-			 System.out.println("seekV magnitude is after: " + seekV.vectorLength(seekV));
+			 seekV = new Vector(playerPos.x, 0);
+			 // Why must i subtract here???
+			 seekV = seekV.subtractFromFirst(seekV, playerPos);
+			 //System.out.println("new sseekV coords " + seekV.x + " ," + seekV.y);
+			 seekV = seekV.normalize(seekV);
+			 seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
+			 
 		}
 		if(circleInObstacle) {
-			Vector fleeV;
 			System.out.println("---------circle in obstacle------");
-			fleeV = playerPos.normalize(playerPos.fleeVector(playerPos, circleVectorSum));
-			seekV = seekV.addVectors(seekV, fleeV);
+			fleeV = new Vector();
+			fleeV = fleeV.fleeVector(playerPos, circleVectorSum);
+			fleeV = fleeV.normalize(	fleeV);
+			fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
+			//seekV = seekV.addVectors(seekV, fleeV);
+			//seekV = seekV.divideVector(seekV, 2);
+			seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
 		}
-		
-//		if(pointAbove.isVectorAnObstacle(obstacles, pointAbove)) {
-//			System.out.println("pointAbove is an obstacle");
-//			Vector fleeV = playerPos.normalize(playerPos.seekVector(pointBelow, pointAbove));
-//			seekV = fleeV.clipLength(fleeV.addVectors(seekV, fleeV), 0, maxAcc);
-//		}
-//		if(pointBelow.isVectorAnObstacle(obstacles, pointBelow)) {
-//			System.out.println("pointBelow is an obstacle");
-//			Vector fleeV = playerPos.normalize(playerPos.seekVector(pointAbove, pointBelow));
-//			seekV = fleeV.addVectors(seekV, fleeV);
-//		}
-		
-		//-----------------------Using circle to find contact vectors-----------
-		
 
-		float dir = -(float) Math.atan2(seekV.y,  seekV.x);
-		
-		System.out.println("the current velocity is: " + info.getVelocity());
-		return new DivingAction(maxAcc, dir);
+		System.out.println(" x is " + seekV.x + " , y is " + seekV.y);
+		float dir = -(float) Math.atan2(seekV.y,seekV.x);
+		return new DivingAction(seekV.vectorLength(seekV), dir);
 	}
 
 	public Vector returnClosestPearlCellCenter() {
@@ -197,13 +191,13 @@ public class simpleSeekFlee extends AI {
 	}
 	
 	public void drawDebugStuff(Graphics2D gfx) {
-		gfx.drawLine((int)playerPos.x,  (int)playerPos.y,  (int)pearlPoints[4].x, (int)pearlPoints[4].y);
 		
-		gfx.setColor(new Color(0,255,0));
-		//gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
-		gfx.drawOval((int)pointAbove.x,  (int)pointAbove.y,  10, 10);
-		gfx.setColor(new Color(255,0,0));
-		gfx.drawOval((int)pointBelow.x,  (int)pointBelow.y,  10, 10);
+		gfx.drawLine((int)playerPos.x,  (int)playerPos.y,  (int)seekV.x + (int)playerPos.x, (int)seekV.y + (int)playerPos.y);
+		
+//		gfx.setColor(new Color(0,255,0));
+//		gfx.drawOval((int)pointAbove.x,  (int)pointAbove.y,  10, 10);
+//		gfx.setColor(new Color(255,0,0));
+//		gfx.drawOval((int)pointBelow.x,  (int)pointBelow.y,  10, 10);
 		
 		for(int i = 0; i < circle.length; i++) {
 			if(circle[i	] != null && circle[i].x > 0 && circle[i].y > 0) {
@@ -212,10 +206,10 @@ public class simpleSeekFlee extends AI {
 					gfx.setColor(new Color(255,0,0));
 					gfx.drawLine((int)circle[i].x, (int)circle[i].y, (int)playerPos.x, (int)playerPos.y);
 				}
-				gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
+				//gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
 			}
 		}
 		gfx.setColor(new Color(255,255,255));
-		gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 10, 10);
+		//gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 10, 10);
 	}
 }
