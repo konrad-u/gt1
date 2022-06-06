@@ -62,6 +62,7 @@ public class simpleSeekFlee extends AI {
 		public int circleDiv = 10;
 		public Vector[] circle = new Vector[circleDiv];
 		public int circleRadius = 30;
+		public int circleContacts = 0;
 		public Vector circleVectorSum = new Vector();
 		public boolean circleInObstacle = false;
 		public float steerSmooth = 0.4f;
@@ -97,13 +98,14 @@ public class simpleSeekFlee extends AI {
 		updatePlayerPos();
 		updateAboveBelowPoints();
 		updateCircle();
+		steerSmooth = (float)(circleContacts+1)/(circleDiv);
 		closestPearl = new Vector(pearlPoints[4].x, pearlPoints[4].y);
 		System.out.println(" divers coordinates are " + playerPos.x + " ," + playerPos.y);
 		return steerToGoal();
 	}
 
 	public DivingAction steerToGoal() {
-		if(currAir > 0.7) {
+		if(currAir > 0.5) {
 		 seekV = playerPos.normalize(playerPos.seekVector(playerPos, closestPearl));
 			seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 		}
@@ -187,6 +189,7 @@ public class simpleSeekFlee extends AI {
 				System.out.println("-------------circleSumCoords are: " + circleVectorSum.x + " , " + circleVectorSum.y);
 			}
 		}
+		circleContacts = circleHits-1;
 		circleVectorSum = circleVectorSum.divideVector(circleVectorSum, (float)circleHits);
 	}
 	
