@@ -100,7 +100,7 @@ public class simpleSeekFlee extends AI {
 		updateCircle();
 		steerSmooth = (float)(circleContacts+1)/(circleDiv);
 		closestPearl = new Vector(pearlPoints[4].x, pearlPoints[4].y);
-		System.out.println(" divers coordinates are " + playerPos.x + " ," + playerPos.y);
+		//System.out.println(" divers coordinates are " + playerPos.x + " ," + playerPos.y);
 		return steerToGoal();
 	}
 

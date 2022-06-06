@@ -40,8 +40,9 @@ public class Pathfinder extends AI {
 	Point pointAbove;
 	Point pointBelow;
 	//above below used to be 20
-	int surrPointDistance = 40;
-	float surrPointsAngleFactor = 0.9f;
+	//now making to 1 as replacing aboveBelow with circle
+	int surrPointDistance = 20;
+	float surrPointsAngleFactor = 0.01f;
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
 	float currAir;
@@ -53,7 +54,7 @@ public class Pathfinder extends AI {
 	//--------------new vars from simpleSeekFlee class, for vector based steering behavior
 	
 	public Vector playerVec = new Vector();
-	public int circleDiv = 10;
+	public int circleDiv = 8;
 	public Vector[] circle = new Vector[circleDiv];
 	public int circleRadius = 30;
 	public int circleContacts = 0;
@@ -65,6 +66,7 @@ public class Pathfinder extends AI {
 	Vector seekV;
 	Vector fleeV;
 	Vector currentGoal;
+	
 	
 	//---Enum for Optimize---
 	enum OptStrat{
@@ -118,27 +120,37 @@ public class Pathfinder extends AI {
 		
 		updateCircle();
 		updatePlayerVec();
+		
+		updateCurrentGoal();
+		
+		//System.out.println("The current angle is " + info.getOrientation()*180/Math.PI);	
 		steerSmooth = (float)(circleContacts+1)/(circleDiv);
 		
 		if(pathToGoal.size() > 0 && playerCell == pathToGoal.get(0)) {
 			pathToGoal.remove(0);
 		}
 
-		if(currAir < 0.5 && nrPearlsCollected < 9) {
+		if(currAir < 0.1 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
-			currentGoal = new Vector(nextPearlAir);
+			currentGoal = new Vector(nextPearlAir.x, nextPearlAir.y);
+			//System.out.println("The currentGoal coords are BEFORE: " + currentGoal.x + " ," + currentGoal.y);	
+			//currentGoal = currentGoal.subtractFromFirst(currentGoal, playerVec);
+			//System.out.println("The currentGoal coords are AFTER: " + currentGoal.x + " ," + currentGoal.y);	
+			//currentGoal = currentGoal.normalize(currentGoal);
+			//currentGoal = currentGoal.clipLength(currentGoal, -maxAcc, maxAcc);
 			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
 			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
 			return avoidObstacles(da);
 		}
-		
-		if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
+		//removing isCleartoclosesttpear to see if we can get a decent steering without shortcuts
+		//if (playerCell.status == Status.pearl || isClearToClosestPearl()) {
+		if (playerCell.status == Status.pearl) {
 			DivingAction da = seekPearl();
 			return avoidObstacles(da);
 		} else {
 			//return seekClosestPearlCellCenter();
 			DivingAction da = MoveToCell(pathToGoal.get(0));
-			currentGoal = new Vector(pathToGoal.get(0).center);
+			currentGoal = new Vector(pathToGoal.get(0).center.x, pathToGoal.get(0).center.y);
 			return avoidObstacles(da);
 		}
 
@@ -169,6 +181,14 @@ public class Pathfinder extends AI {
 		playerVec.x = info.getX();
 		playerVec.y = info.getY();
 	}
+	
+	public void updateCurrentGoal() {
+		float orientation = info.getOrientation();
+		
+		double pointX = playerPos.x + (surrPointDistance * Math.cos(orientation + Math.PI/2));
+		double pointY = playerPos.y - (surrPointDistance * Math.sin(orientation + Math.PI/2));
+		currentGoal =  new Vector(pointX, pointY);	 
+	}
 	//----------------W3 Methods-----------
 	
 	public DivingAction avoidObstacles(DivingAction currentAction) {
@@ -177,33 +197,43 @@ public class Pathfinder extends AI {
 		// based on currentDirection, make a new vector representing it?
 		// then use this vector in recalculating a direction under consideration of obstacles
 		
+		//how do I get from a direction to a vector? that is the current seekVector then
+		// seekVector = playerVec + point in currentAction.getDirection * line length? 
+		
+		//if player is in cell of pearl, don't push away
+		
+		if(playerCell.status != Status.pearl) {
+			if(currAir > 0.5) {
+				 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
+					seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
+				}
+				else {
+					 seekV = new Vector(playerVec.x, 0);
+					 // Why must i subtract here???
+					 seekV = seekV.subtractFromFirst(seekV, playerVec);
+					 seekV = seekV.normalize(seekV);
+					 seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
+					 
+				}
+				if(circleInObstacle) {
+					fleeV = new Vector();
+					fleeV = fleeV.fleeVector(playerVec, circleVectorSum);
+					fleeV = fleeV.normalize(	fleeV);
+					fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
+					//trying a flip here
+					fleeV = fleeV.multiplyVector(fleeV, -1);
+					seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
+				}
+				float dir = -(float) Math.atan2(seekV.y,seekV.x);
+				return new DivingAction(seekV.vectorLength(seekV), dir);
+		}
+		else {
+			return currentAction;
+		}
 		
 		
-//		playerVec = new Vector(playerPos);
-//		
-//		if(currAir > 0.5) {
-//			 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
-//				seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
-//			}
-//			else {
-//				 seekV = new Vector(playerVec.x, 0);
-//				 // Why must i subtract here???
-//				 seekV = seekV.subtractFromFirst(seekV, playerVec);
-//				 seekV = seekV.normalize(seekV);
-//				 seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
-//				 
-//			}
-//			if(circleInObstacle) {
-//				fleeV = new Vector();
-//				fleeV = fleeV.fleeVector(playerVec, circleVectorSum);
-//				fleeV = fleeV.normalize(	fleeV);
-//				fleeV = fleeV.clipLength(fleeV, -maxAcc, maxAcc);
-//				seekV = seekV.addVectors(fleeV.multiplyVector(fleeV, steerSmooth), seekV.multiplyVector(seekV, 1-steerSmooth));
-//			}
-//			float dir = -(float) Math.atan2(seekV.y,seekV.x);
-//			return new DivingAction(seekV.vectorLength(seekV), dir);
 		
-		return currentAction;
+		//return currentAction;
 	}
 	
 	public Point getObsContactPoint(Point surrPoint) {
@@ -480,9 +510,10 @@ public class Pathfinder extends AI {
 
 		//float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 
-		float directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
+		//-----------------------------------------------------put this back for aboveBelow
+		//float directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
 		
-		
+		float directionToCellCenter = -(float) Math.atan2(directionPoint.y, directionPoint.x);
 		
 		//------------new simple condition for steering behavior
 		
@@ -515,7 +546,7 @@ public class Pathfinder extends AI {
 		
 		double pointX = playerPos.x + (surrPointDistance * Math.cos(orientation + Math.PI/2 * surrPointsAngleFactor));
 		double pointY = playerPos.y - (surrPointDistance * Math.sin(orientation + Math.PI/2 * surrPointsAngleFactor));
-		pointAbove =  new Point((int) pointX, (int)pointY);		
+		pointAbove =  new Point((int) pointX, (int)pointY);	 
 		
 		//pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
 		pointX = playerPos.x + (surrPointDistance * Math.cos(orientation - Math.PI/2 * surrPointsAngleFactor));
@@ -729,7 +760,7 @@ public class Pathfinder extends AI {
 
 		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 		
-		currentGoal = new Vector(directionPoint);
+		currentGoal = new Vector(closestPearl.x, closestPearl.y);
 
 		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
 
@@ -837,15 +868,19 @@ public class Pathfinder extends AI {
 			for(int i = 0; i < circle.length; i++) {
 				if(circle[i	] != null && circle[i].x > 0 && circle[i].y > 0) {
 					gfx.setColor(new Color(0,255,255));
-					if(circle[i].isVectorAnObstacle(obstacles, circle[i])) {
+					//if(circle[i].isVectorAnObstacle(obstacles, circle[i])) {
 						gfx.setColor(new Color(255,0,0));
 						gfx.drawLine((int)circle[i].x, (int)circle[i].y, (int)playerPos.x, (int)playerPos.y);
-					}
+					//}
 					//gfx.drawOval((int)circle[i].x, (int)circle[i].y, 5,5);
 				}
 			}
-			gfx.setColor(new Color(0,0,0));
+			gfx.setColor(new Color(125,255,125));
 			gfx.drawOval((int)playerVec.x, (int)playerVec.y, 10, 10);
+			gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 10, 10);
+			gfx.drawLine((int)playerVec.x, (int)playerVec.y, (int)currentGoal.x, (int)currentGoal.y);
+			
+			
 			
 		}
 //		gfx.setColor(new Color(125,125,0));
