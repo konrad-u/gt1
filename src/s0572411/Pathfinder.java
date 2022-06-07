@@ -195,7 +195,7 @@ public class Pathfinder extends AI {
 	public DivingAction avoidObstacles(DivingAction currentAction) {
 		
 		if(playerCell.status != Status.pearl) {
-			if(currAir > 0.55) {
+			if(currAir > 0.55 ) {
 				 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
 					seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 				}
@@ -272,7 +272,6 @@ public class Pathfinder extends AI {
 	//-------THIS ONES A TROUBLEMAKER
 	public boolean isClearToClosestPearl() {
 		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
-		
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
 				double slope = (double)(closestPearl.y - playerPos.y) / (closestPearl.x - playerPos.x);
 				//adjustable resolution factor
@@ -742,7 +741,7 @@ public class Pathfinder extends AI {
 				closestPearl = pearls[i];
 				closestPearlDistance = currentPearlDistance;
 				for (int j = 0; j < pearls.length; j++) {
-					if(pearls[j].y < closestPearl.y) {
+					if(pearls[j].y < closestPearl.y && closestPearl.y > info.getScene().getHeight()*0.5) {
 						closestPearl = pearls[j];
 						currentPearlDistance = calculateDistance(pearls[j], player);
 					}
