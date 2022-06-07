@@ -740,8 +740,13 @@ public class Pathfinder extends AI {
 			float currentPearlDistance = calculateDistance(pearls[i], player);
 			if (currentPearlDistance < closestPearlDistance) {
 				closestPearl = pearls[i];
-				//add new condition that considers pearl depth
 				closestPearlDistance = currentPearlDistance;
+				for (int j = 0; j < pearls.length; j++) {
+					if(pearls[j].y < closestPearl.y) {
+						closestPearl = pearls[j];
+						currentPearlDistance = calculateDistance(pearls[j], player);
+					}
+				}
 			}
 		}
 		return closestPearl;
