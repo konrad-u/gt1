@@ -55,7 +55,7 @@ public class Pathfinder extends AI {
 	//--------------new vars from simpleSeekFlee class, for vector based steering behavior
 	
 	public Vector playerVec = new Vector();
-	public int circleDiv = 15;
+	public int circleDiv = 25;
 	public Vector[] circle = new Vector[circleDiv];
 	public int circleRadius = 25;
 	public int circleContacts = 0;
@@ -307,7 +307,17 @@ public class Pathfinder extends AI {
 					    }
 					    x -= resolution;
 					}
-				}  
+				}
+				//create condition for straight down situation which force checks along a line
+				if(Math.abs(playerPos.x - closestPearl.x) < 5) {
+					float absDist = calculateDistance(playerPos, closestPearl);
+					for(int i = playerPos.y; i < closestPearl.y; i += 10) {
+						Point p = new Point(playerPos.x, i);
+						if(isPointAnObstacle(p)) {
+							return false;
+						}
+					}
+				}
 			System.out.println("CLEAR");
 		return true;
 	}
@@ -866,6 +876,19 @@ public class Pathfinder extends AI {
 			    }
 			    gfx.drawOval(linePoint.x, linePoint.y, 2,2);
 			    x -= resolution;
+			}
+		}
+		if(Math.abs(playerPos.x - closestPearl.x) < 5) {
+			float absDist = calculateDistance(playerPos, closestPearl);
+			for(int i = playerPos.y; i < closestPearl.y; i += 10) {
+				Point p = new Point(playerPos.x, i);
+				gfx.setColor(new Color(0,255,0));
+				if(isPointAnObstacle(p)) {
+					gfx.setColor(new Color(255,0,0));
+				}
+				else {
+					gfx.drawOval(p.x, p.y, 2,2);
+				}
 			}
 		}
 
