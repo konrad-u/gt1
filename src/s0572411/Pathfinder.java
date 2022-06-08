@@ -1,12 +1,10 @@
 package s0572411;
 
 import java.awt.Color;
-//import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
-//import java.util.Arrays;
 import java.util.Collections;
 
 import lenz.htw.ai4g.ai.AI;
@@ -38,16 +36,11 @@ public class Pathfinder extends AI {
 	//---Own variables: Player
 	Point playerPos;
 	MapCell playerCell;
-	Point pointAbove;
-	Point pointBelow;
-	//above below used to be 20
-	//now making to 1 as replacing aboveBelow with circle
 	int surrPointDistance = 20;
 	float surrPointsAngleFactor = 0.01f;
 	float dirWeight = 0.6f;
 	float fleeWeight = 1-dirWeight;
 	float currAir;
-	Point pTL, pTR, pBL, pBR;
 	int pBox = res/2;
 	
 	ArrayList<Point> pointsToPearl;
@@ -66,7 +59,7 @@ public class Pathfinder extends AI {
 
 	Vector seekV;
 	Vector fleeV;
-	Vector currentGoal;
+	Vector currentDirectionVec;
 	
 	
 	//---Enum for Optimize---
@@ -109,10 +102,6 @@ public class Pathfinder extends AI {
 		playerPos = new Point((int) info.getX(), (int) info.getY());
 		playerCell = map.PointToMapCell(wCells, hCells, playerPos);
 
-		updateAboveBelowPoints();
-		
-		updatePlayerBox();
-
 		checkIfPlayerReachedPearl();
 		
 		updatePlayerCellStatus();
@@ -122,7 +111,7 @@ public class Pathfinder extends AI {
 		updateCircle();
 		updatePlayerVec();
 		
-		updateCurrentGoal();
+		updateCurrentDirection();
 		
 		//System.out.println("The current angle is " + info.getOrientation()*180/Math.PI);	
 		steerSmooth = (float)(circleContacts+1)/(circleDiv);
@@ -133,13 +122,7 @@ public class Pathfinder extends AI {
 
 		if(currAir < 0.45 && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
-			currentGoal = new Vector(nextPearlAir.x, nextPearlAir.y);
-			//System.out.println("The currentGoal coords are BEFORE: " + currentGoal.x + " ," + currentGoal.y);	
-			//currentGoal = currentGoal.subtractFromFirst(currentGoal, playerVec);
-			//System.out.println("The currentGoal coords are AFTER: " + currentGoal.x + " ," + currentGoal.y);	
-			//currentGoal = currentGoal.normalize(currentGoal);
-			//currentGoal = currentGoal.clipLength(currentGoal, -maxAcc, maxAcc);
-			//Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
+			currentDirectionVec = new Vector(nextPearlAir.x, nextPearlAir.y);
 			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
 			return avoidObstacles(da);
 		}
@@ -151,7 +134,7 @@ public class Pathfinder extends AI {
 		} else {
 			//return seekClosestPearlCellCenter();
 			DivingAction da = MoveToCell(pathToGoal.get(0));
-			currentGoal = new Vector(pathToGoal.get(0).center.x, pathToGoal.get(0).center.y);
+			currentDirectionVec = new Vector(pathToGoal.get(0).center.x, pathToGoal.get(0).center.y);
 			return avoidObstacles(da);
 		}
 
@@ -183,12 +166,12 @@ public class Pathfinder extends AI {
 		playerVec.y = info.getY();
 	}
 	
-	public void updateCurrentGoal() {
+	public void updateCurrentDirection() {
 		float orientation = info.getOrientation();
 		
 		double pointX = playerPos.x + (surrPointDistance * Math.cos(orientation + Math.PI/2));
 		double pointY = playerPos.y - (surrPointDistance * Math.sin(orientation + Math.PI/2));
-		currentGoal =  new Vector(pointX, pointY);	 
+		currentDirectionVec =  new Vector(pointX, pointY);	 
 	}
 	//----------------W3 Methods-----------
 	
@@ -196,7 +179,7 @@ public class Pathfinder extends AI {
 		
 		if(playerCell.status != Status.pearl) {
 			if(currAir > 0.55 ) {
-				 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentGoal));
+				 seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentDirectionVec));
 					seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 				}
 				else {
@@ -222,10 +205,6 @@ public class Pathfinder extends AI {
 		else {
 			return currentAction;
 		}
-		
-		
-		
-		//return currentAction;
 	}
 	
 	public Point getObsContactPoint(Point surrPoint) {
@@ -269,7 +248,6 @@ public class Pathfinder extends AI {
 		return null;
 	}
 
-	//-------THIS ONES A TROUBLEMAKER
 	public boolean isClearToClosestPearl() {
 		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
@@ -343,7 +321,6 @@ public class Pathfinder extends AI {
 			for (int j = 0; j < hCells; j++) {
 				map.mapGrid[i][j].graphCost = Float.MAX_VALUE;
 				map.mapGrid[i][j].airCost = calculateDistance(playerPos, returnClosestPearlCellCenter());
-				
 				map.mapGrid[i][j].marked = false;
 				}
 			}
@@ -354,7 +331,7 @@ public class Pathfinder extends AI {
 		
 		//System.out.println(debugCount);
 		Collections.reverse(pathToGoal);
-		OptimizePath(OptStrat.straightToPearl);
+		OptimizePath();
 	}
 	
 	public void calcNeighborDistances(MapCell currentCell) {
@@ -438,101 +415,13 @@ public class Pathfinder extends AI {
 	}
 	
 	public DivingAction MoveToCell(MapCell cell) {
-		
-		//Point p1 = new Point(0,1);
-		//Point p2 = new Point(1,0);
-		
-		//float[] fp1 = normalizePointToFloatArray(p1);
-		//float[] fp2 = normalizePointToFloatArray(p2);
-		
-		//float[] afp1 = averageTwoPointsWithWeighing(fp1, fp2, 0.25f, 0.75f);
-		
-		//System.out.println(" the test point is " + afp1[0] + ", " + afp1[1]);
 
 		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
 		
 		float[] normDir = normalizePointToFloatArray(directionPoint);
 		
-		float[] normAbove = normalizePointToFloatArray(pointAbove);
-		
-		float[] normBelow = normalizePointToFloatArray(pointBelow);
-		
-		if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
-			System.out.println("both aheadPonts in obstacle");
-			float[] bPoints = averageTwoPointsWithWeighing(normBelow, normAbove, 0.5f, 0.5f);
-			float[] normbPointsFlipped = new float[] {
-					-bPoints[0], -bPoints[1]
-			};
-			normDir = averageTwoPointsWithWeighing(normDir, normbPointsFlipped, dirWeight, fleeWeight);
-			
-		}
-		
-		else if(isPointAnObstacle(pointAbove)) {
-			System.out.println("Above is in an obstacle");
-			//System.out.println(" the ABOVE point before is " + normDir[0] + " , " +  normDir[1]);
-			float[] normAboveFlipped = new float[] {
-					-normAbove[0], -normAbove[1]
-			};
-			Point collPoint = getObsContactPoint(pointAbove);
-			if(collPoint != null) {
-				float distToCollPoint = calculateDistance(playerPos, collPoint);
-				System.out.println("distToCollPoint is " + distToCollPoint);
-				float proxFactorToPlayer = distToCollPoint/surrPointDistance;
-				System.out.println("dirWeight is " + (1-proxFactorToPlayer) + ", fleeWeight is " + proxFactorToPlayer);
-				normDir = averageTwoPointsWithWeighing(normDir, normAboveFlipped, (1-proxFactorToPlayer), proxFactorToPlayer);
-			}
-			//------------------old test stuff
-			//System.out.println(" the ABOVE point after  is " + normDir[0] + " , " +  normDir[1]);
-			 //directionPoint = directionPoint + pointFromStartToGoal(pointAbove, playerPos);
-			//pointfromstart to goal must be normalized
-			//weight factor < 1 for 
-			//weightfactor = distance zum Obstacle
-			//-------------------
-		}
-		else if(isPointAnObstacle(pointBelow)) {
-			System.out.println("Below is in an obstacle");
-			//System.out.println(" the BELOW point before is " + normDir[0] + " , " +  normDir[1]);
-			float[] normBelowFlipped = new float[] {
-					-normBelow[0], -normBelow[1]
-			};
-			Point collPoint = getObsContactPoint(pointBelow);
-			if(collPoint != null) {
-				float distToCollPoint = calculateDistance(playerPos, collPoint);
-				System.out.println("distToCollPoint is " + distToCollPoint);
-				float proxFactorToPlayer = distToCollPoint/surrPointDistance;
-				System.out.println("dirWeight is " + (1-proxFactorToPlayer) + ", fleeWeight is " + proxFactorToPlayer);
-				normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, (1-proxFactorToPlayer), proxFactorToPlayer);
-			}
-			//normDir = averageTwoPointsWithWeighing(normDir, normBelowFlipped, dirWeight, fleeWeight);
-			//----------------old test stuff
-			//System.out.println(" the FLIPPED BELOW point before is " + normBelowFlipped[0] + " , " +  normBelowFlipped[1]);
-			//System.out.println("-------THE ACTUAL FLIPPED BELOW IS " + (normBelowFlipped[0] * -1) + " , " + (normBelowFlipped[1] * -1));
-			//---------------
-			//System.out.println(" the BELOW point after  is " + normDir[0] + " , " +  normDir[1]);
-		}
-
-		//float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
-
-		//-----------------------------------------------------put this back for aboveBelow
-		//float directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
 		
 		float directionToCellCenter = -(float) Math.atan2(directionPoint.y, directionPoint.x);
-		
-		//------------new simple condition for steering behavior
-		
-
-		
-//		if(isPointAnObstacle(pointAbove) && isPointAnObstacle(pointBelow)) {
-//			directionToCellCenter = -(float) Math.atan2(normDir[1], normDir[0]);
-//		}
-//		if(isPointAnObstacle(pointAbove)) {
-//			directionToCellCenter = -(float) Math.atan2(pointBelow.y, pointBelow.x);
-//		}
-//		else if(isPointAnObstacle(pointBelow)) {
-//			directionToCellCenter = -(float) Math.atan2(pointAbove.y, pointAbove.x);
-//		}
-		//System.out.println(" the final normDir is " + normDir[0] + " , " + normDir[1]);
-		
 		
 		
 		DivingAction pearlPursuit;
@@ -540,21 +429,6 @@ public class Pathfinder extends AI {
 		pearlPursuit = new DivingAction(maxVel, directionToCellCenter);
 
 		return pearlPursuit;
-	}
-	
-	//--------------------------Flee Methods---------------------------
-	
-	public void updateAboveBelowPoints(){
-		float orientation = info.getOrientation();
-		
-		double pointX = playerPos.x + (surrPointDistance * Math.cos(orientation + Math.PI/2 * surrPointsAngleFactor));
-		double pointY = playerPos.y - (surrPointDistance * Math.sin(orientation + Math.PI/2 * surrPointsAngleFactor));
-		pointAbove =  new Point((int) pointX, (int)pointY);	 
-		
-		//pointY = playerPos.y + playerPos.y - (belowFactor * Math.sin(orientation));
-		pointX = playerPos.x + (surrPointDistance * Math.cos(orientation - Math.PI/2 * surrPointsAngleFactor));
-		pointY = playerPos.y - (surrPointDistance * Math.sin(orientation - Math.PI/2 * surrPointsAngleFactor));
-		pointBelow =  new Point((int) pointX, (int)pointY);
 	}
 	
 	// ----------------Pathfinder Methods----------------
@@ -594,9 +468,7 @@ public class Pathfinder extends AI {
 	}
 
 
-	public void OptimizePath(OptStrat optStrat) {
-		
-		if(optStrat == OptStrat.shortenPath) {
+	public void OptimizePath() {
 			int startIndex = 0;
 			int endIndex = 2;
 			if(pathToGoal.size() >2) {
@@ -630,20 +502,6 @@ public class Pathfinder extends AI {
 					endIndex++;
 				}
 			}
-		}
-		else if(optStrat == OptStrat.straightToPearl) {
-			// draw a straight line from diver to pearl
-			// if no point along line is in an obstacle, 
-			//set goal directly to pearlCell of pearl1
-			
-			// use findCellsInLineOf Sight? if res low enough, as otherwise may pass edges that wouldn't block the diver....
-			
-			//ArrayList<MapCell> ArrToPearl = new ArrayList<MapCell>();
-			//Point nextPearlCen = returnClosestPearlCellCenter();
-			
-			
-		}
-		
 		
 	}
 	
@@ -769,7 +627,7 @@ public class Pathfinder extends AI {
 
 		float[] seekNormPoints = normalizePointToFloatArray(directionPoint);
 		
-		currentGoal = new Vector(closestPearl.x, closestPearl.y);
+		currentDirectionVec = new Vector(closestPearl.x, closestPearl.y);
 
 		float directionToPearl = -(float) Math.atan2(seekNormPoints[1], seekNormPoints[0]);
 
@@ -829,20 +687,11 @@ public class Pathfinder extends AI {
 			gfx.setColor(new Color(255,255,255));
 			gfx.drawLine(pathToGoal.get(i).center.x, pathToGoal.get(i).center.y, pathToGoal.get(i-1).center.x, pathToGoal.get(i-1).center.y);
 		}
-		//---drawing in points around and of player---
-		gfx.setColor(new Color(0,255,0));
-		//gfx.drawLine(pointAhead.x, pointAhead.y, playerPos.x, playerPos.y);
-		gfx.drawOval(pointAbove.x,  pointAbove.y,  10, 10);
-		gfx.setColor(new Color(255,0,0));
-		gfx.drawOval(pointBelow.x,  pointBelow.y,  10, 10);
 		
 		gfx.setColor(new Color(255,255,255));
 		gfx.drawOval(playerPos.x,  playerPos.y,  10, 10);
 		
 		//---drawing in line to closestPearl, if obstacles in path draw red, else draw green using  new method
-		gfx.setColor(new Color(255,0,0));
-		//gfx.drawLine(playerPos.x, playerPos.y, returnClosestPearlCellCenter().x, returnClosestPearlCellCenter().y);
-		
 		Point closestPearl = getClosestPearl(pearlPoints, playerPos);
 		
 		//line function taken from https://stackoverflow.com/questions/37100841/draw-line-function 
@@ -906,120 +755,7 @@ public class Pathfinder extends AI {
 		gfx.drawOval((int)playerVec.x, (int)playerVec.y, 10, 10);
 		gfx.setColor(new Color(255,165,0));
 		gfx.drawOval((int)circleVectorSum.x, (int)circleVectorSum.y, 15, 15);
-		gfx.drawLine((int)playerVec.x, (int)playerVec.y, (int)currentGoal.x, (int)currentGoal.y);
-//		gfx.setColor(new Color(125,125,0));
-//		gfx.drawOval(pTL.x, pTL.y, 3, 3);
-//		gfx.drawOval(pTR.x, pTR.y, 3, 3);
-//		gfx.drawOval(pBL.x, pBL.y, 3, 3);
-//		gfx.drawOval(pBR.x, pBR.y, 3, 3);
-		
-		gfx.setColor(new Color(255,255,0));
-		if(getObsContactPoint(pointAbove) != null) {
-			Point p = getObsContactPoint(pointAbove);
-			gfx.drawOval(p.x,  p.y,  10, 10);
-		}
-		if(getObsContactPoint(pointBelow) != null) {
-			Point p = getObsContactPoint(pointBelow);
-			gfx.drawOval(p.x,  p.y,  10, 10);
-		}
+		gfx.drawLine((int)playerVec.x, (int)playerVec.y, (int)currentDirectionVec.x, (int)currentDirectionVec.y);
 		
 	}
-		
-	//------------------- unused methods----------------
-	
-	// draw a line from point x1,y1 into x2,y2
-		//inspired by https://www.geeksforgeeks.org/bresenhams-line-generation-algorithm/ 
-		// https://technicalexception.blogspot.com/2013/10/bresenham-line-drawing-algorithm-in-java.html
-		// and https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-		
-		public ArrayList<Point> bresenhamFlatLine(int x1, int y1, int x2, int y2) {
-			System.out.println("Bresenham is running...");
-			ArrayList<Point> pointsOnFlatLine = new ArrayList<Point>();
-			
-			//switch values to keep direction left to right
-			//TD simplify to if x2 < x1
-			if((x1 - x2) > 0 ){
-				bresenhamFlatLine(x2, y2, x1, y1);
-			}
-			
-			//check how line inclines, i.e. which delta is higher
-			if(Math.abs(y2-y1) > Math.abs(x2-x1)) {
-				bresenhamSteepLine(y1, x1, y2, x2);
-			}
-			int x = x1; 
-			int y = y1; 
-			int sum = x2 - x1; 
-			int Dx = 2 * (x2 - x1); 
-			int Dy = Math.abs(2 * (y2 - y1));
-			int prirastokDy = ((y2 - y1) > 0) ? 1 : -1;
-			
-			for (int i = 0; i <= x2 -x1; i++) {
-				pointsOnFlatLine.add(new Point(x,y));
-				x++;
-				sum -= Dy;
-			if (sum < 0) 
-			{
-				y = y + prirastokDy; sum += Dx;
-			}
-		}
-			
-			return pointsOnFlatLine;
-		}
-		
-		public ArrayList<Point> bresenhamSteepLine(int x3, int y3, int x4, int y4) {
-			ArrayList<Point> pointsOnSteepLine = new ArrayList<Point>();
-			
-			if((x3 - x4) > 0 ){
-				bresenhamSteepLine(x4, y4, x3, y3);
-			}
-				int x = x3;
-			  int y = y3;
-			  int Dx = 2 * (x4 - x3);
-			  int sum = x4 - x3;
-			  int Dy = Math.abs(2 * (y4 - y3));
-			  
-			  int prirastokDy = ((y4 - y3) > 0) ? 1 : -1;
-
-			  for (int i = 0; i <= x4 -x3; i++) {
-			   pointsOnSteepLine.add(new Point(x,y));
-			   x++;
-				sum -= Dy;
-			   if (sum < 0) {y = y + prirastokDy; sum += Dx;}
-			  }
-			
-			return pointsOnSteepLine;
-		}
-		 
-		public void lineFromPoints(Point start, Point end) {
-			int a = end.y - start.y;
-			int b = start.x - end.x;
-			int c = a * start.x + b * start.y;
-			
-			if(b < 0) {
-				System.out.println("The line passing through the start and goal is: " + a + "x - " + b + "y = " + c);
-			}
-			else {
-				 System.out.println( "The line passing through the start and goal is: " + a + "x + " + b + "y = " + c);
-			}
-		}
-
-		public void updatePlayerBox() {
-			pTL = new Point(playerPos.x - pBox, playerPos.y - pBox);
-			pTR = new Point(playerPos.x - pBox, playerPos.y + pBox);
-			pBL = new Point(playerPos.x + pBox, playerPos.y - pBox);
-			pBR = new Point(playerPos.x + pBox, playerPos.y + pBox);
-		}
-
-
-		/*
-		public DivingAction returnToSurface() {
-			
-			Point nextPearlAir = new Point(playerPos.x, 0);
-			Point directionPoint = pointFromStartToGoal(playerPos, nextPearlAir);
-			//return MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
-			
-			DivingAction surfacePursuit = new DivingAction(maxVel, directionPoint);
-			return surfacePursuit;
-		} */
-
 }
