@@ -27,6 +27,7 @@ public class Pathfinder extends AI {
 	float maxAcc = info.getMaxAcceleration();
 	float validProximityToPearl = 10;
 	
+	
 	//--Own variables: Map---
 	int res = 40;
 	int wCells = w / res;
@@ -139,6 +140,20 @@ public class Pathfinder extends AI {
 		}
 
 	}
+	
+	//--------------w4, collecting bottles and shopping
+	
+	/*
+	 * To do: 
+	 * collect 4 bottles, buy 2 boosters (balloons and streamlined wig), then go for pearls
+	 * bottles need to be prioritized the same way as pearls; 
+	 * first idea: while (not 4 bottles collected && not have 2 items) pursue closest bottle
+	 * 					create enum for seeClosestPearl? trying to keep code dry. 
+	 * 
+	 * - clean up update method; put all updates into a single update method as well as prints 
+	 * 
+	 */
+	
 	
 	//---------------------methods from simpleSeekFlee class for vector based steering behavior
 	public void updateCircle() {
@@ -296,7 +311,7 @@ public class Pathfinder extends AI {
 						}
 					}
 				}
-			System.out.println("CLEAR");
+			//System.out.println("CLEAR");
 		return true;
 	}
 
