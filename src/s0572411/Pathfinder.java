@@ -63,7 +63,7 @@ public class Pathfinder extends AI {
 	Point[] bottlePoints = info.getScene().getRecyclingProducts();
 	Point shop = new Point(info.getScene().getShopPosition(), 0);
 	int bottlesCollected = 0;
-	int bottlesNeeded = 8;
+	int bottlesNeeded = 4;
 	int itemsPurchased = 0;
 
 	Vector seekV;
@@ -109,7 +109,7 @@ public class Pathfinder extends AI {
 			currentDirectionVec = new Vector(nextPearlAir.x, nextPearlAir.y);
 			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
 			return avoidObstacles(da);
-		} else if (bottlesCollected < bottlesNeeded && itemsPurchased < bottlesNeeded / 2) {
+		} else if (bottlesCollected < bottlesNeeded || itemsPurchased < bottlesNeeded / 2) {
 			if (bottlesCollected < bottlesNeeded) {
 				Point closestBottle = getClosestPearlOrBottle(bottlePoints, playerPos);
 				currentDirectionVec = new Vector(closestBottle.x, closestBottle.y);
@@ -127,8 +127,7 @@ public class Pathfinder extends AI {
 				if (calculateDistance(shop, playerPos) < validProximityToPearl) {
 					// do shopping
 					for (int i = 0; i < bottlesNeeded / 2; i++) {
-						// ---------------------------------------------------------------PERFORM
-						// SHOPPING--------------------
+						// ShoppingAction sa = this.buyItem(i);
 					}
 				} else {
 					currentDirectionVec = new Vector(shop.x, shop.y);
@@ -211,17 +210,6 @@ public class Pathfinder extends AI {
 		// return sa;
 		return null;
 	}
-
-	/*
-	 * To do: collect 4 bottles, buy 2 boosters (balloons and streamlined wig), then
-	 * go for pearls bottles need to be prioritized the same way as pearls; first
-	 * idea: while (not 4 bottles collected && not have 2 items) pursue closest
-	 * bottle create enum for seeClosestPearl? trying to keep code dry.
-	 * 
-	 * - clean up update method; put all updates into a single update method as well
-	 * as prints
-	 * 
-	 */
 
 	// ---------------------methods from simpleSeekFlee class for vector based
 	// steering behavior
