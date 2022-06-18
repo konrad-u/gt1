@@ -11,6 +11,8 @@ import lenz.htw.ai4g.ai.AI;
 import lenz.htw.ai4g.ai.DivingAction;
 import lenz.htw.ai4g.ai.Info;
 import lenz.htw.ai4g.ai.PlayerAction;
+import lenz.htw.ai4g.ai.ShoppingAction;
+import lenz.htw.ai4g.ai.ShoppingItem;
 import s0572411.MapCell.Status;
 
 public class Pathfinder extends AI {
@@ -111,15 +113,28 @@ public class Pathfinder extends AI {
 			if (bottlesCollected < bottlesNeeded) {
 				Point closestBottle = getClosestPearlOrBottle(bottlePoints, playerPos);
 				currentDirectionVec = new Vector(closestBottle.x, closestBottle.y);
-				// DivingAction da =
+				DivingAction da = currentDirectionVec.vectorToDivingAction(playerVec, currentDirectionVec, maxAcc);
+				return avoidObstacles(da);
 				// find closestBottle
 				// pursue closestBottle via avoidObstacles(da)
 				// checking air?
 
 			} else if (itemsPurchased < bottlesNeeded / 2) {
 				// go to shop
+				// check if in sufficient proximity to shop, i.e. validPearlDistance
 				// purchase itemsPurchased
 				// increment itemsPurchased
+				if (calculateDistance(shop, playerPos) < validProximityToPearl) {
+					// do shopping
+					for (int i = 0; i < bottlesNeeded / 2; i++) {
+						// ---------------------------------------------------------------PERFORM
+						// SHOPPING--------------------
+					}
+				} else {
+					currentDirectionVec = new Vector(shop.x, shop.y);
+					DivingAction da = currentDirectionVec.vectorToDivingAction(playerVec, currentDirectionVec, maxAcc);
+					return avoidObstacles(da);
+				}
 			}
 		} else {
 			// do everything else, i.e. pearl pursuit
@@ -188,6 +203,13 @@ public class Pathfinder extends AI {
 				return;
 			}
 		}
+	}
+
+	public ShoppingAction buyItem(int itemNr) {
+		// ShoppingItem si = new ShoppingItem();
+		// ShoppingAction sa = new ShoppingAction(si);
+		// return sa;
+		return null;
 	}
 
 	/*
