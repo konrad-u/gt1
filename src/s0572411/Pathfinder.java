@@ -27,7 +27,7 @@ public class Pathfinder extends AI {
 	float maxAir = info.getMaxAir();
 	int nrPearlsCollected = 0;
 	float maxAcc = info.getMaxAcceleration();
-	float validProximityToPearl = 10;
+	float validProximityToPearl = 8;
 
 	// --Own variables: Map---
 	int res = 40;
@@ -51,7 +51,8 @@ public class Pathfinder extends AI {
 	// behavior
 
 	public Vector playerVec = new Vector();
-	public int circleDiv = 25;
+	// default circleDiv is 25
+	public int circleDiv = 40;
 	public Vector[] circle = new Vector[circleDiv];
 	public int circleRadius = 25;
 	public int circleContacts = 0;
@@ -149,6 +150,10 @@ public class Pathfinder extends AI {
 			return avoidObstacles(da);
 		} else {
 			// return seekClosestPearlCellCenter();
+			if (MoveToCell(pathToGoal.get(0)) == null) {
+				DivingAction da = seekPearl();
+				return avoidObstacles(da);
+			}
 			DivingAction da = MoveToCell(pathToGoal.get(0));
 			currentDirectionVec = new Vector(pathToGoal.get(0).center.x, pathToGoal.get(0).center.y);
 			return avoidObstacles(da);
