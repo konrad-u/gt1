@@ -25,11 +25,13 @@ public class Pathfinder extends AI {
 	int w = info.getScene().getWidth();
 	int h = info.getScene().getHeight();
 	float maxAir = info.getMaxAir();
+	float defaultAir = info.getMaxAir();
 	int nrPearlsCollected = 0;
 	float maxAcc = info.getMaxAcceleration();
 	float validProximityToPearl = 7;
 
 	// --Own variables: Map---
+	// is usually 40
 	int res = 40;
 	int wCells = w / res;
 	int hCells = h / res;
@@ -38,9 +40,11 @@ public class Pathfinder extends AI {
 	// ---Own variables: Player
 	Point playerPos;
 	MapCell playerCell;
-	int surrPointDistance = 20;
+	// generally has been 20
+	int surrPointDistance = 10;
 	float surrPointsAngleFactor = 0.01f;
-	float dirWeight = 0.7f;
+	// generally has been 0.5f
+	float dirWeight = 0.8f;
 	float fleeWeight = 1 - dirWeight;
 	float currAir;
 	int pBox = res / 2;
@@ -54,12 +58,12 @@ public class Pathfinder extends AI {
 	// default circleDiv is 25
 	public int circleDiv = 30;
 	public Vector[] circle = new Vector[circleDiv];
-	public int circleRadius = 25;
+	public int circleRadius = 10;
 	public int circleContacts = 0;
 	public Vector circleVectorSum = new Vector();
 	public boolean circleInObstacle = false;
 	// steerSmooth is weight of circle vectors; so far used 0.4f
-	public float steerSmooth = 0.55f;
+	public float steerSmooth = 0.65f;
 
 	// ----------new vars w4 and 5
 	Point[] bottlePoints = info.getScene().getRecyclingProducts();
@@ -106,7 +110,8 @@ public class Pathfinder extends AI {
 
 		updateEverything();
 
-		if (currAir < 0.55 && nrPearlsCollected < 9) {
+		// if (currAir < 0.55 && nrPearlsCollected < 9) {
+		if (!isAirOk() && nrPearlsCollected < 9) {
 			Point nextPearlAir = new Point(playerPos.x, 0);
 			currentDirectionVec = new Vector(nextPearlAir.x, nextPearlAir.y);
 			DivingAction da = MoveToCell(map.PointToMapCell(wCells, hCells, nextPearlAir));
@@ -236,6 +241,18 @@ public class Pathfinder extends AI {
 		return null;
 	}
 
+	public boolean isAirOk() {
+		if (defaultAir == maxAir && currAir > 0.55f) {
+			System.out.println("DEFAULT AIR IS SAME AS MAXAIR");
+			return true;
+		} else if (defaultAir < maxAir && currAir > 0.3f) {
+			System.out.println("DEFAULT AIR IS SMALLER THAN MAXAIR");
+			return true;
+		} else
+			System.out.println("ISAIROK IS FALSE");
+		return false;
+	}
+
 	// ---------------------methods from simpleSeekFlee class for vector based
 	// steering behavior
 	public void updateCircle() {
@@ -277,7 +294,8 @@ public class Pathfinder extends AI {
 	public DivingAction avoidObstacles(DivingAction currentAction) {
 
 		if (playerCell.status != Status.pearl) {
-			if (currAir > 0.55) {
+			// is usually 0.55, now being tested in isAirOk and setting here down to 0.3
+			if (currAir > 0.3) {
 				seekV = playerVec.normalize(playerVec.seekVector(playerVec, currentDirectionVec));
 				seekV = seekV.clipLength(seekV, -maxAcc, maxAcc);
 			} else {
@@ -708,7 +726,7 @@ public class Pathfinder extends AI {
 				closestPearlDistance = currentPearlDistance;
 				for (int j = 0; j < pearlsOrBottles.length; j++) {
 					if (pearlsOrBottles[j].y < closestPearlOrBottle.y
-							&& closestPearlOrBottle.y > info.getScene().getHeight() * 0.5) {
+							&& closestPearlOrBottle.y > info.getScene().getHeight() * 0.5 && maxAir == defaultAir) {
 						closestPearlOrBottle = pearlsOrBottles[j];
 						currentPearlDistance = calculateDistance(pearlsOrBottles[j], player);
 					}
