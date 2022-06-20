@@ -388,7 +388,7 @@ public class Pathfinder extends AI {
 		}
 		// create condition for straight down situation which force checks along a line
 		if (Math.abs(playerPos.x - closestPearl.x) < 5) {
-			float absDist = calculateDistance(playerPos, closestPearl);
+			// float absDist = calculateDistance(playerPos, closestPearl);
 			for (int i = playerPos.y; i < closestPearl.y; i += 10) {
 				Point p = new Point(playerPos.x, i);
 				if (isPointAnObstacle(p)) {
@@ -517,7 +517,7 @@ public class Pathfinder extends AI {
 
 		Point directionPoint = pointFromStartToGoal(playerPos, cell.center);
 
-		float[] normDir = normalizePointToFloatArray(directionPoint);
+		// float[] normDir = normalizePointToFloatArray(directionPoint);
 
 		float directionToCellCenter = -(float) Math.atan2(directionPoint.y, directionPoint.x);
 
@@ -830,7 +830,7 @@ public class Pathfinder extends AI {
 			}
 		}
 		if (Math.abs(playerPos.x - closestPearl.x) < 5) {
-			float absDist = calculateDistance(playerPos, closestPearl);
+			// float absDist = calculateDistance(playerPos, closestPearl);
 			for (int i = playerPos.y; i < closestPearl.y; i += 10) {
 				Point p = new Point(playerPos.x, i);
 				gfx.setColor(new Color(0, 255, 0));
