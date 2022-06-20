@@ -27,7 +27,7 @@ public class Pathfinder extends AI {
 	float maxAir = info.getMaxAir();
 	int nrPearlsCollected = 0;
 	float maxAcc = info.getMaxAcceleration();
-	float validProximityToPearl = 8;
+	float validProximityToPearl = 7;
 
 	// --Own variables: Map---
 	int res = 40;
@@ -40,7 +40,7 @@ public class Pathfinder extends AI {
 	MapCell playerCell;
 	int surrPointDistance = 20;
 	float surrPointsAngleFactor = 0.01f;
-	float dirWeight = 0.6f;
+	float dirWeight = 0.7f;
 	float fleeWeight = 1 - dirWeight;
 	float currAir;
 	int pBox = res / 2;
@@ -52,13 +52,14 @@ public class Pathfinder extends AI {
 
 	public Vector playerVec = new Vector();
 	// default circleDiv is 25
-	public int circleDiv = 40;
+	public int circleDiv = 30;
 	public Vector[] circle = new Vector[circleDiv];
 	public int circleRadius = 25;
 	public int circleContacts = 0;
 	public Vector circleVectorSum = new Vector();
 	public boolean circleInObstacle = false;
-	public float steerSmooth = 0.4f;
+	// steerSmooth is weight of circle vectors; so far used 0.4f
+	public float steerSmooth = 0.55f;
 
 	// ----------new vars w4 and 5
 	Point[] bottlePoints = info.getScene().getRecyclingProducts();
@@ -150,7 +151,7 @@ public class Pathfinder extends AI {
 			return avoidObstacles(da);
 		} else {
 			// return seekClosestPearlCellCenter();
-			if (MoveToCell(pathToGoal.get(0)) == null) {
+			if (pathToGoal.isEmpty()) {
 				DivingAction da = seekPearl();
 				return avoidObstacles(da);
 			}
@@ -199,7 +200,7 @@ public class Pathfinder extends AI {
 
 	public void checkIfPlayerReachedBottle() {
 		for (int i = 0; i < bottlePoints.length; i++) {
-			if (calculateDistance(bottlePoints[i], playerPos) < validProximityToPearl) {
+			if (calculateDistance(bottlePoints[i], playerPos) <= validProximityToPearl + 1) {
 				bottlePoints[i] = new Point(99999999, 999999999);
 				bottlesCollected++;
 				return;
@@ -213,6 +214,7 @@ public class Pathfinder extends AI {
 		case 0:
 			sa = new ShoppingAction(ShoppingItem.BALLOON_SET);
 			itemsPurchased++;
+			maxAir = maxAir * 2;
 			System.out.println("Purchased item " + sa.getProductToBuy());
 			return sa;
 		case 1:
@@ -684,7 +686,7 @@ public class Pathfinder extends AI {
 
 	public void checkIfPlayerReachedPearl() {
 		for (int i = 0; i < pearlPoints.length; i++) {
-			if (calculateDistance(pearlPoints[i], playerPos) < validProximityToPearl) {
+			if (calculateDistance(pearlPoints[i], playerPos) <= validProximityToPearl + 2) {
 				map.PointToMapCell(wCells, hCells, pearlPoints[i]).status = Status.obstacle;
 				pearlPoints[i] = new Point(99999999, 999999999);
 				nrPearlsCollected++;
