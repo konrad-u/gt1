@@ -63,7 +63,7 @@ public class Pathfinder extends AI {
 	Point[] bottlePoints = info.getScene().getRecyclingProducts();
 	Point shop = new Point(info.getScene().getShopPosition(), 0);
 	int bottlesCollected = 0;
-	int bottlesNeeded = 4;
+	int bottlesNeeded = 6;
 	int itemsPurchased = 0;
 
 	Vector seekV;
@@ -126,9 +126,7 @@ public class Pathfinder extends AI {
 				// increment itemsPurchased
 				if (calculateDistance(shop, playerPos) < validProximityToPearl) {
 					// do shopping
-					for (int i = 0; i < bottlesNeeded / 2; i++) {
-						// ShoppingAction sa = this.buyItem(i);
-					}
+					return buyItem(itemsPurchased);
 				} else {
 					currentDirectionVec = new Vector(shop.x, shop.y);
 					DivingAction da = currentDirectionVec.vectorToDivingAction(playerVec, currentDirectionVec, maxAcc);
@@ -204,10 +202,30 @@ public class Pathfinder extends AI {
 		}
 	}
 
-	public ShoppingAction buyItem(int itemNr) {
-		// ShoppingItem si = new ShoppingItem();
-		// ShoppingAction sa = new ShoppingAction(si);
-		// return sa;
+	public PlayerAction buyItem(int itemNr) {
+		ShoppingAction sa;
+		switch (itemNr) {
+		case 0:
+			sa = new ShoppingAction(ShoppingItem.BALLOON_SET);
+			itemsPurchased++;
+			System.out.println("Purchased item " + sa.getProductToBuy());
+			return sa;
+		case 1:
+			sa = new ShoppingAction(ShoppingItem.STREAMLINED_WIG);
+			itemsPurchased++;
+			System.out.println("Purchased item " + sa.getProductToBuy());
+			return sa;
+		case 2:
+			sa = new ShoppingAction(ShoppingItem.MOTORIZED_FLIPPERS);
+			itemsPurchased++;
+			System.out.println("Purchased item " + sa.getProductToBuy());
+			return sa;
+		case 3:
+			sa = new ShoppingAction(ShoppingItem.CORNER_CUTTER);
+			itemsPurchased++;
+			System.out.println("Purchased item " + sa.getProductToBuy());
+			return sa;
+		}
 		return null;
 	}
 
